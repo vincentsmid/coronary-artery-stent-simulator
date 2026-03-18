@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Auxetic Stent — Interactive Animation &amp; STL Export</title>
+<title>Auxetic Stent — Animation &amp; STL Export</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500&family=JetBrains+Mono:wght@400&display=swap');
   *{margin:0;padding:0;box-sizing:border-box}
-  :root{--bg:#0a0b0d;--surface:#13151a;--border:rgba(255,255,255,0.06);--text:#e8e6e1;--text-dim:#7a7870;--accent:#5dcaa5;--accent-dim:rgba(93,202,165,0.15);--coral:#f0997b;--blue:#85b7eb;--purple:#afa9ec;--amber:#fac775}
+  :root{--bg:#0a0b0d;--surface:#13151a;--border:rgba(255,255,255,0.06);--text:#e8e6e1;--text-dim:#7a7870;--accent:#5dcaa5;--accent-dim:rgba(93,202,165,0.15);--coral:#f0997b;--blue:#85b7eb}
   body{background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;overflow-x:hidden;min-height:100vh}
-  .app{display:grid;grid-template-columns:1fr 360px;grid-template-rows:auto 1fr auto;height:100vh;gap:0}
+  .app{display:grid;grid-template-columns:1fr 360px;grid-template-rows:auto 1fr auto;height:100vh}
   .header{grid-column:1/-1;padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   .header h1{font-size:14px;font-weight:500;letter-spacing:.04em;color:var(--text-dim);text-transform:uppercase}
   .header .tag{font-size:10px;font-family:'JetBrains Mono',monospace;background:var(--accent-dim);color:var(--accent);padding:2px 8px;border-radius:4px}
@@ -19,16 +19,16 @@
   .stat-pill{pointer-events:auto;font-size:10px;font-family:'JetBrains Mono',monospace;background:rgba(19,21,26,.88);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:5px;padding:5px 10px;color:var(--text-dim);display:flex;gap:5px;align-items:center}
   .stat-pill .val{color:var(--accent);font-weight:500}
   .panel{background:var(--surface);border-left:1px solid var(--border);padding:20px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:22px}
-  .panel-section{display:flex;flex-direction:column;gap:14px}
-  .panel-section h3{font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);padding-bottom:8px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none}
-  .panel-section h3 .tog{font-size:13px;color:var(--text-dim);font-weight:300;width:18px;text-align:center}
-  .panel-section .sb{display:flex;flex-direction:column;gap:14px;overflow:hidden;transition:max-height .3s ease,opacity .2s ease}
-  .panel-section.closed .sb{max-height:0!important;opacity:0;pointer-events:none}
+  .ps{display:flex;flex-direction:column;gap:14px}
+  .ps h3{font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);padding-bottom:8px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none}
+  .ps h3 .tog{font-size:13px;color:var(--text-dim);font-weight:300;width:18px;text-align:center}
+  .ps .sb{display:flex;flex-direction:column;gap:14px;overflow:hidden;transition:max-height .3s ease,opacity .2s ease}
+  .ps.closed .sb{max-height:0!important;opacity:0;pointer-events:none}
   .mode-buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-  .mode-btn{background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text-dim);font-family:'DM Sans',system-ui,sans-serif;font-size:11px;font-weight:400;padding:10px 4px;cursor:pointer;transition:all .2s;text-align:center;line-height:1.3}
-  .mode-btn:hover{border-color:rgba(255,255,255,.12);color:var(--text)}
-  .mode-btn.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:500}
-  .mode-btn .icon{display:block;font-size:15px;margin-bottom:2px}
+  .mb{background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text-dim);font-family:'DM Sans',system-ui,sans-serif;font-size:11px;font-weight:400;padding:10px 4px;cursor:pointer;transition:all .2s;text-align:center;line-height:1.3}
+  .mb:hover{border-color:rgba(255,255,255,.12);color:var(--text)}
+  .mb.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:500}
+  .mb .icon{display:block;font-size:15px;margin-bottom:2px}
   .sg{display:flex;flex-direction:column;gap:7px}
   .sl{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text-dim)}
   .sl .v{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)}
@@ -36,34 +36,30 @@
   input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);cursor:pointer}
   input[type="range"]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);cursor:pointer}
   .r2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .btn-main,.btn-dl{width:100%;border:none;border-radius:8px;font-family:'DM Sans',system-ui,sans-serif;font-size:13px;font-weight:500;padding:12px;cursor:pointer;transition:all .15s;letter-spacing:.02em}
-  .btn-main{background:var(--accent);color:var(--bg)}
-  .btn-main:hover{filter:brightness(1.1)}
-  .btn-dl{background:rgba(255,255,255,.05);color:var(--text);border:1px solid var(--border)}
-  .btn-dl:hover{border-color:var(--accent);color:var(--accent)}
-  .btn-dl:disabled{opacity:.4;cursor:default;border-color:var(--border);color:var(--text-dim)}
+  .bm,.bd,.br{width:100%;border:none;border-radius:8px;font-family:'DM Sans',system-ui,sans-serif;font-size:13px;font-weight:500;padding:12px;cursor:pointer;transition:all .15s;letter-spacing:.02em}
+  .bm{background:var(--accent);color:var(--bg)}.bm:hover{filter:brightness(1.1)}
+  .bd{background:rgba(255,255,255,.05);color:var(--text);border:1px solid var(--border)}.bd:hover{border-color:var(--accent);color:var(--accent)}.bd:disabled{opacity:.4;cursor:default;border-color:var(--border);color:var(--text-dim)}
+  .br{background:transparent;color:var(--text-dim);border:1px solid var(--border);font-size:11px;padding:8px}.br:hover{border-color:rgba(255,255,255,.15);color:var(--text)}
   .prog{width:100%;height:3px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden;display:none}
   .prog .bar{height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width .15s}
   .ic{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:7px;padding:10px;font-size:11px;line-height:1.6;color:var(--text-dim)}
-  .ic strong{color:var(--text);font-weight:500}
-  .ic .hl{color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:10px}
+  .ic strong{color:var(--text);font-weight:500}.ic .hl{color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:10px}
   .footer{grid-column:1/-1;border-top:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:16px;font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;flex-wrap:wrap}
   .footer .sep{opacity:.3}
   .cd{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px;vertical-align:middle}
+  .btn-row{display:flex;gap:8px}
+  .btn-row>*{flex:1}
 
   @media(max-width:860px){
     .app{grid-template-columns:1fr;grid-template-rows:auto minmax(42vh,48vh) 1fr auto;height:auto;min-height:100vh}
-    .header{padding:12px 14px;gap:6px}
-    .header h1{font-size:12px;width:100%}
-    .viewport{touch-action:none}
-    .viewport-overlay{bottom:10px;left:8px;right:8px;justify-content:center}
+    .header{padding:12px 14px;gap:6px}.header h1{font-size:12px;width:100%}
+    .viewport{touch-action:none}.viewport-overlay{bottom:10px;left:8px;right:8px;justify-content:center}
     .panel{border-left:none;border-top:1px solid var(--border);padding:14px 14px 24px}
     input[type="range"]{height:5px}
     input[type="range"]::-webkit-slider-thumb{width:20px;height:20px;border-width:3px}
     input[type="range"]::-moz-range-thumb{width:20px;height:20px;border-width:3px}
-    .btn-main,.btn-dl{font-size:13px;padding:12px}
-    .footer .sep{display:none}
-    .footer>span{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:3px;padding:2px 6px}
+    .bm,.bd{font-size:13px;padding:12px}
+    .footer .sep{display:none}.footer>span{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:3px;padding:2px 6px}
   }
   @media(max-width:400px){.mode-buttons{grid-template-columns:repeat(2,1fr)}.stat-pill:nth-child(n+4){display:none}}
 </style>
@@ -86,29 +82,33 @@
   </div>
   <div class="panel">
 
-    <div class="panel-section" id="sec-anim">
-      <h3>Animation <span class="tog">−</span></h3>
+    <div class="ps" id="sec-anim">
+      <h3>Animation <span class="tog">&minus;</span></h3>
       <div class="sb">
         <div class="mode-buttons">
-          <button class="mode-btn active" data-mode="crimp"><span class="icon">⊘</span>Crimp</button>
-          <button class="mode-btn" data-mode="expand"><span class="icon">◎</span>Expand</button>
-          <button class="mode-btn" data-mode="bend"><span class="icon">↺</span>Bend</button>
-          <button class="mode-btn" data-mode="flex"><span class="icon">〰</span>Flex</button>
+          <button class="mb active" data-mode="crimp"><span class="icon">⊘</span>Crimp</button>
+          <button class="mb" data-mode="expand"><span class="icon">◎</span>Expand</button>
+          <button class="mb" data-mode="bend"><span class="icon">↺</span>Bend</button>
+          <button class="mb" data-mode="flex"><span class="icon">〰</span>Flex</button>
         </div>
         <div class="sg"><div class="sl"><span>Deformation</span><span class="v" id="deform-val">0%</span></div><input type="range" id="deform-slider" min="0" max="100" value="0" step="1"></div>
         <div class="sg"><div class="sl"><span>Speed</span><span class="v" id="speed-val">1.0x</span></div><input type="range" id="speed-slider" min="1" max="30" value="10" step="1"></div>
-        <button class="btn-main" id="play-btn">&#9654;  Play animation</button>
+        <div class="btn-row">
+          <button class="bm" id="play-btn">&#9654; Play</button>
+          <button class="br" id="reset-btn">&#8634; Reset</button>
+        </div>
         <div class="ic" id="info-card"><strong>Crimping</strong> — Negative Poisson's ratio contracts laterally when compressed axially, enabling catheter delivery at <span class="hl">50%</span> diameter.</div>
       </div>
     </div>
 
-    <div class="panel-section" id="sec-dims">
-      <h3>Stent dimensions <span class="tog">−</span></h3>
+    <div class="ps" id="sec-dims">
+      <h3>Stent dimensions <span class="tog">&minus;</span></h3>
       <div class="sb">
         <div class="r2">
-          <div class="sg"><div class="sl"><span>Outer diam.</span><span class="v" id="od-val">3.0 mm</span></div><input type="range" id="od-slider" min="1.5" max="6.0" value="3.0" step="0.1"></div>
-          <div class="sg"><div class="sl"><span>Length</span><span class="v" id="len-val">15.0 mm</span></div><input type="range" id="len-slider" min="5" max="30" value="15" step="0.5"></div>
+          <div class="sg"><div class="sl"><span>Diam. start</span><span class="v" id="od1-val">3.0 mm</span></div><input type="range" id="od1-slider" min="1.5" max="6.0" value="3.0" step="0.1"></div>
+          <div class="sg"><div class="sl"><span>Diam. end</span><span class="v" id="od2-val">3.0 mm</span></div><input type="range" id="od2-slider" min="1.5" max="6.0" value="3.0" step="0.1"></div>
         </div>
+        <div class="sg"><div class="sl"><span>Length</span><span class="v" id="len-val">15.0 mm</span></div><input type="range" id="len-slider" min="5" max="30" value="15" step="0.5"></div>
         <div class="r2">
           <div class="sg"><div class="sl"><span>Strut width</span><span class="v" id="sw-val">0.20 mm</span></div><input type="range" id="sw-slider" min="0.10" max="0.40" value="0.20" step="0.01"></div>
           <div class="sg"><div class="sl"><span>Strut depth</span><span class="v" id="sd-val">0.20 mm</span></div><input type="range" id="sd-slider" min="0.10" max="0.40" value="0.20" step="0.01"></div>
@@ -116,8 +116,8 @@
       </div>
     </div>
 
-    <div class="panel-section" id="sec-cell">
-      <h3>Auxetic cell <span class="tog">−</span></h3>
+    <div class="ps" id="sec-cell">
+      <h3>Auxetic cell <span class="tog">&minus;</span></h3>
       <div class="sb">
         <div class="r2">
           <div class="sg"><div class="sl"><span>H (vert rib)</span><span class="v" id="h-val">0.60 mm</span></div><input type="range" id="h-slider" min="0.20" max="1.20" value="0.60" step="0.02"></div>
@@ -131,13 +131,13 @@
       </div>
     </div>
 
-    <div class="panel-section" id="sec-export">
-      <h3>Export STL <span class="tog">−</span></h3>
+    <div class="ps" id="sec-export">
+      <h3>Export STL <span class="tog">&minus;</span></h3>
       <div class="sb">
+        <div class="ic" style="font-size:10px;line-height:1.5">Downloads the stent <strong>exactly as displayed</strong> — including any active deformation (crimp, bend, flex, taper). Watertight SDF + marching cubes.</div>
         <div class="sg"><div class="sl"><span>Voxel resolution</span><span class="v" id="vox-val">0.040 mm</span></div><input type="range" id="vox-slider" min="20" max="80" value="40" step="2"></div>
-        <div class="ic" style="font-size:10px;line-height:1.5">Watertight mesh via SDF + marching cubes, generated in-browser. Finer resolution = more triangles. <span class="hl">~0.03 mm</span> matches LPBF layer thickness.</div>
         <div class="prog" id="dl-progress"><div class="bar" id="dl-bar"></div></div>
-        <button class="btn-dl" id="dl-btn">&#11015;  Generate &amp; download STL</button>
+        <button class="bd" id="dl-btn">&#11015; Generate &amp; download STL</button>
       </div>
     </div>
 
@@ -169,53 +169,157 @@ canvas.addEventListener('touchstart',e=>{if(e.touches.length===1){isDrag=true;lx
 canvas.addEventListener('touchmove',e=>{if(e.touches.length===1&&isDrag){orbitTheta-=(e.touches[0].clientX-lx)*.008;orbitPhi=Math.max(.1,Math.min(Math.PI-.1,orbitPhi-(e.touches[0].clientY-ly)*.008));lx=e.touches[0].clientX;ly=e.touches[0].clientY}else if(e.touches.length===2){const a=e.touches[0].clientX-e.touches[1].clientX,b=e.touches[0].clientY-e.touches[1].clientY,d=Math.sqrt(a*a+b*b);if(lpd>0)orbitDist=Math.max(3,Math.min(50,orbitDist*(lpd/d)));lpd=d}e.preventDefault()},{passive:false});
 canvas.addEventListener('touchend',e=>{isDrag=false;if(e.touches.length<2)lpd=0});
 if('ontouchstart'in window){const h=document.getElementById('interact-hint');if(h)h.textContent='swipe to orbit \u00b7 pinch to zoom'}
+document.querySelectorAll('.ps h3').forEach(h=>{h.addEventListener('click',()=>{const s=h.closest('.ps');s.classList.toggle('closed');h.querySelector('.tog').textContent=s.classList.contains('closed')?'+':'\u2212'})});
 
-document.querySelectorAll('.panel-section h3').forEach(h=>{h.addEventListener('click',()=>{const s=h.closest('.panel-section');s.classList.toggle('closed');h.querySelector('.tog').textContent=s.classList.contains('closed')?'+':'\u2212'})});
-
-const P={OD:3,length:15,H:.6,L:.5,thetaDeg:-25,nCirc:10,nAxial:14,strutW:.2,strutD:.2};
+const P={OD1:3,OD2:3,length:15,H:.6,L:.5,thetaDeg:-25,nCirc:10,nAxial:14,strutW:.2,strutD:.2};
 let mode='crimp',deformT=0,animSpeed=1,playing=false,stentGroup=null,lastSC=0;
 const sM=new THREE.MeshStandardMaterial({color:0x5dcaa5,metalness:.4,roughness:.5});
 const hM=new THREE.MeshStandardMaterial({color:0x85b7eb,metalness:.4,roughness:.5});
 const $=id=>document.getElementById(id);
 
-function m2c(x,y,R,tc){const a=(x/tc)*Math.PI*2;return new THREE.Vector3(R*Math.cos(a),y,R*Math.sin(a))}
+// ─── Shared: generate 2D segments + dedup + map to 3D with deformation ───
+function genSegments3D(applyDeform){
+  const{OD1,OD2,length,H,L,thetaDeg,nCirc,nAxial,strutW,strutD}=P;
+  const sR=strutW/2;
+  const aT=Math.abs(thetaDeg)*Math.PI/180;
+  const dx=L*Math.cos(aT),dy=L*Math.sin(aT),cW=2*dx,cH=H+2*dy;
+  const tc=nCirc*cW,ta=nAxial*cH,hl=length/2;
+
+  // 2D lattice
+  const s2=[];
+  for(let r=0;r<nAxial;r++)for(let c=0;c<nCirc;c++){
+    let xo=c*cW;if(r%2===1)xo+=cW/2;const yo=r*cH-ta/2;
+    s2.push({s:[xo,yo],e:[xo,yo+H],t:'v'});
+    s2.push({s:[xo,yo],e:[xo-dx,yo-dy],t:'d'});
+    s2.push({s:[xo,yo],e:[xo+dx,yo-dy],t:'d'});
+    s2.push({s:[xo,yo+H],e:[xo-dx,yo+H+dy],t:'d'});
+    s2.push({s:[xo,yo+H],e:[xo+dx,yo+H+dy],t:'d'});
+  }
+
+  // Dedup + filter
+  const seen=new Set(),uniq=[];
+  const zB=hl+L+strutW;
+  for(const seg of s2){
+    let sx=((seg.s[0]%tc)+tc)%tc,sy=seg.s[1],ex=((seg.e[0]%tc)+tc)%tc,ey=seg.e[1];
+    if(Math.abs(sx-ex)>tc*.4)continue;
+    if(sy<-zB&&ey<-zB)continue;if(sy>zB&&ey>zB)continue;
+    if(Math.abs(sx-ex)+Math.abs(sy-ey)<.001)continue;
+    const k=sx.toFixed(3)+','+sy.toFixed(3)+','+ex.toFixed(3)+','+ey.toFixed(3);
+    const kr=ex.toFixed(3)+','+ey.toFixed(3)+','+sx.toFixed(3)+','+sy.toFixed(3);
+    if(seen.has(k)||seen.has(kr))continue;seen.add(k);
+    uniq.push({s:[sx,sy],e:[ex,ey],t:seg.t});
+  }
+
+  // Deformation params
+  const t=applyDeform?deformT:0;
+  let bend=0,flex=0,axS=1;
+  let crimpF=0,expandF=0;
+  if(applyDeform){
+    if(mode==='crimp')crimpF=t;
+    else if(mode==='expand')expandF=t;
+    else if(mode==='bend')bend=t;
+    else if(mode==='flex')flex=t;
+  }
+  if(crimpF>0)axS=1-crimpF*.25;
+  if(expandF>0)axS=1+expandF*.15;
+
+  // Map to 3D with taper + deformation
+  function radiusAt(y){
+    // y is axial position, ta/2 = half total axial extent
+    const frac=(y+ta/2)/ta; // 0 at bottom, 1 at top
+    const R1=OD1/2, R2=OD2/2;
+    let R=R1+(R2-R1)*Math.max(0,Math.min(1,frac));
+    if(crimpF>0) R*=(1-crimpF*.5);
+    if(expandF>0) R*=(1+expandF*.33);
+    return R;
+  }
+
+  function m2c(x,y,tc2){
+    const a=(x/tc2)*Math.PI*2;
+    const Rm=radiusAt(y)-strutD/2;
+    return {x:Rm*Math.cos(a), y:y*axS, z:Rm*Math.sin(a)};
+  }
+
+  function applyBendFlex(pt){
+    if(bend>0){
+      const kappa=bend*0.08;
+      const s=pt.y;
+      if(kappa*Math.abs(s)>1e-6){
+        pt.y=Math.sin(kappa*s)/kappa;
+        pt.x+=(1-Math.cos(kappa*s))/kappa;
+      }
+    }
+    if(flex>0){
+      const nY=pt.y/(hl*axS||1);
+      pt.x+=Math.sin(nY*Math.PI*2)*flex*.8;
+      pt.z+=Math.cos(nY*Math.PI*2.5+.5)*flex*.3;
+    }
+    return pt;
+  }
+
+  // Build 3D segments (subdivided for curvature)
+  const segs3d=[];
+  for(const seg of uniq){
+    for(let i=0;i<4;i++){
+      const f0=i/4,f1=(i+1)/4;
+      const px0=seg.s[0]*(1-f0)+seg.e[0]*f0, py0=seg.s[1]*(1-f0)+seg.e[1]*f0;
+      const px1=seg.s[0]*(1-f1)+seg.e[0]*f1, py1=seg.s[1]*(1-f1)+seg.e[1]*f1;
+      const p0=m2c(px0,py0,tc), p1=m2c(px1,py1,tc);
+      const pp0=applyBendFlex({x:p0.x,y:p0.y,z:p0.z});
+      const pp1=applyBendFlex({x:p1.x,y:p1.y,z:p1.z});
+      segs3d.push({p0:[pp0.x,pp0.y,pp0.z],p1:[pp1.x,pp1.y,pp1.z],r:sR});
+    }
+  }
+
+  return {segs3d, uniq, tc, hl, ta, radiusAt, sR, axS, bend, flex, crimpF, expandF};
+}
+
+// ─── Three.js preview ───
+function m2cV(x,y,R,tc){const a=(x/tc)*Math.PI*2;return new THREE.Vector3(R*Math.cos(a),y,R*Math.sin(a))}
 function mkT(p,r,m,s){if(p.length<2)return null;const c=new THREE.CatmullRomCurve3(p.map(v=>new THREE.Vector3(v.x,v.y,v.z)),false,'centripetal',0);return new THREE.Mesh(new THREE.TubeGeometry(c,Math.max(2,s||3),r,6,false),m)}
 
 function buildStent(){
   if(stentGroup)scene.remove(stentGroup);stentGroup=new THREE.Group();
-  const{OD,length,H,L,thetaDeg,nCirc,nAxial}=P;
-  const sR=P.strutW/2;
-  const R=OD/2,aT=Math.abs(thetaDeg)*Math.PI/180;
-  const dx=L*Math.cos(aT),dy=L*Math.sin(aT),cW=2*dx,cH=H+2*dy,tc=nCirc*cW,ta=nAxial*cH,hl=length/2;
-  const segs=[];
-  for(let r=0;r<nAxial;r++)for(let c=0;c<nCirc;c++){
-    let xo=c*cW;if(r%2===1)xo+=cW/2;const yo=r*cH-ta/2;
-    segs.push({s:[xo,yo],e:[xo,yo+H],t:'v'});
-    segs.push({s:[xo,yo],e:[xo-dx,yo-dy],t:'d'});
-    segs.push({s:[xo,yo],e:[xo+dx,yo-dy],t:'d'});
-    segs.push({s:[xo,yo+H],e:[xo-dx,yo+H+dy],t:'d'});
-    segs.push({s:[xo,yo+H],e:[xo+dx,yo+H+dy],t:'d'});
-  }
-  stentGroup.userData={segs,tc,R,hl,nCirc,sR};
-  rebuildMeshes(0);scene.add(stentGroup);
-  orbitDist=Math.max(12,length*1.0+OD*3);
+  rebuildMeshes();scene.add(stentGroup);
+  orbitDist=Math.max(12,P.length*1.0+Math.max(P.OD1,P.OD2)*3);
 }
 
-function rebuildMeshes(t){
+function rebuildMeshes(){
   while(stentGroup.children.length){const c=stentGroup.children[0];if(c.geometry)c.geometry.dispose();stentGroup.remove(c)}
-  const{segs,tc,hl,nCirc,sR}=stentGroup.userData;
-  let{R}=stentGroup.userData;
-  let cR=R,bend=0,flex=0,axS=1;
-  if(mode==='crimp'){cR=R*(1-t*.5);axS=1-t*.25}
-  else if(mode==='expand'){cR=R*(1+t*.33);axS=1+t*.15}
-  else if(mode==='bend')bend=t*.35;
+
+  const{OD1,OD2,length,H,L,thetaDeg,nCirc,nAxial,strutW,strutD}=P;
+  const sR=strutW/2;
+  const aT=Math.abs(thetaDeg)*Math.PI/180;
+  const dx=L*Math.cos(aT),dy=L*Math.sin(aT),cW=2*dx,cH=H+2*dy;
+  const tc=nCirc*cW,ta=nAxial*cH,hl=length/2;
+
+  const t=deformT;
+  let bend=0,flex=0,axS=1,crimpF=0,expandF=0;
+  if(mode==='crimp'){crimpF=t;axS=1-t*.25}
+  else if(mode==='expand'){expandF=t;axS=1+t*.15}
+  else if(mode==='bend')bend=t;
   else if(mode==='flex')flex=t;
 
+  function radAt(y){
+    const frac=(y+ta/2)/ta;
+    let R=(OD1/2)+((OD2-OD1)/2)*Math.max(0,Math.min(1,frac));
+    if(crimpF>0)R*=(1-crimpF*.5);if(expandF>0)R*=(1+expandF*.33);
+    return R;
+  }
+
+  // 2D segments
+  const s2=[];
+  for(let r=0;r<nAxial;r++)for(let c=0;c<nCirc;c++){
+    let xo=c*cW;if(r%2===1)xo+=cW/2;const yo=r*cH-ta/2;
+    s2.push({s:[xo,yo],e:[xo,yo+H],t:'v'});
+    s2.push({s:[xo,yo],e:[xo-dx,yo-dy],t:'d'});s2.push({s:[xo,yo],e:[xo+dx,yo-dy],t:'d'});
+    s2.push({s:[xo,yo+H],e:[xo-dx,yo+H+dy],t:'d'});s2.push({s:[xo,yo+H],e:[xo+dx,yo+H+dy],t:'d'});
+  }
   const seen=new Set(),uniq=[];
-  for(const seg of segs){
+  const zB=hl+L+strutW;
+  for(const seg of s2){
     let sx=((seg.s[0]%tc)+tc)%tc,sy=seg.s[1],ex=((seg.e[0]%tc)+tc)%tc,ey=seg.e[1];
     if(Math.abs(sx-ex)>tc*.4)continue;
-    const zB=hl+P.L+P.strutW;
     if(sy<-zB&&ey<-zB)continue;if(sy>zB&&ey>zB)continue;
     if(Math.abs(sx-ex)+Math.abs(sy-ey)<.001)continue;
     const k=sx.toFixed(3)+','+sy.toFixed(3)+','+ex.toFixed(3)+','+ey.toFixed(3);
@@ -226,19 +330,14 @@ function rebuildMeshes(t){
 
   for(const seg of uniq){
     const path=[];
-    for(let i=0;i<=4;i++){const f=i/4,px=seg.s[0]*(1-f)+seg.e[0]*f,py=(seg.s[1]*(1-f)+seg.e[1]*f)*axS;let pt=m2c(px,py,cR,tc);
-      if(bend>0){
-        // Bend: map straight Y axis onto a circular arc
-        // kappa = curvature, s = arc length (original Y position)
-        const kappa=bend*0.08;
-        const s=pt.y;
-        if(kappa*Math.abs(s)>1e-6){
-          pt.y=Math.sin(kappa*s)/kappa;
-          pt.x+=((1-Math.cos(kappa*s))/kappa);
-        }
-        // when kappa*s ~ 0, pt stays unchanged (no jump)
-      }
-      if(flex>0){const nY=pt.y/(hl*axS);pt.x+=Math.sin(nY*Math.PI*2)*flex*.8;pt.z+=Math.cos(nY*Math.PI*2.5+.5)*flex*.3}
+    for(let i=0;i<=4;i++){
+      const f=i/4;
+      const px=seg.s[0]*(1-f)+seg.e[0]*f, py=seg.s[1]*(1-f)+seg.e[1]*f;
+      const R=radAt(py)-strutD/2;
+      const a2=(px/tc)*Math.PI*2;
+      let pt={x:R*Math.cos(a2), y:py*axS, z:R*Math.sin(a2)};
+      if(bend>0){const kappa=bend*0.08,s=pt.y;if(kappa*Math.abs(s)>1e-6){pt.y=Math.sin(kappa*s)/kappa;pt.x+=(1-Math.cos(kappa*s))/kappa}}
+      if(flex>0){const nY=pt.y/(hl*axS||1);pt.x+=Math.sin(nY*Math.PI*2)*flex*.8;pt.z+=Math.cos(nY*Math.PI*2.5+.5)*flex*.3}
       path.push(pt);
     }
     const mt=(t>.01&&(mode==='crimp'||mode==='expand')&&seg.t==='d'&&t>.5)?hM:sM;
@@ -246,17 +345,28 @@ function rebuildMeshes(t){
   }
 }
 
-const infoT={crimp:'<strong>Crimping</strong> — Negative Poisson\'s ratio contracts laterally when compressed axially. <span class="hl">50%</span> diameter reduction for catheter delivery.',expand:'<strong>Expansion</strong> — Self-expands with axial elongation. No foreshortening.',bend:'<strong>Bending</strong> — Conforms to vessel curvature with non-uniform cell deformation.',flex:'<strong>Flex</strong> — Pulsatile loading distributed evenly by the auxetic lattice.'};
-
-document.querySelectorAll('.mode-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.mode-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');mode=b.dataset.mode;$('info-card').innerHTML=infoT[mode];if(!playing){deformT=+$('deform-slider').value/100;rebuildMeshes(deformT)}}));
-$('deform-slider').addEventListener('input',()=>{deformT=+$('deform-slider').value/100;$('deform-val').textContent=Math.round(deformT*100)+'%';playing=false;$('play-btn').innerHTML='&#9654;  Play';rebuildMeshes(deformT);updateStats()});
+// ─── UI ───
+const infoT={crimp:'<strong>Crimping</strong> — Negative Poisson\'s ratio contracts laterally when compressed axially. <span class="hl">50%</span> diameter reduction.',expand:'<strong>Expansion</strong> — Self-expands with axial elongation. No foreshortening.',bend:'<strong>Bending</strong> — Conforms to vessel curvature with non-uniform cell deformation.',flex:'<strong>Flex</strong> — Pulsatile loading distributed evenly by the auxetic lattice.'};
+document.querySelectorAll('.mb').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.mb').forEach(x=>x.classList.remove('active'));b.classList.add('active');mode=b.dataset.mode;$('info-card').innerHTML=infoT[mode];if(!playing)rebuildMeshes()}));
+$('deform-slider').addEventListener('input',()=>{deformT=+$('deform-slider').value/100;$('deform-val').textContent=Math.round(deformT*100)+'%';playing=false;$('play-btn').innerHTML='&#9654; Play';rebuildMeshes();updateStats()});
 $('speed-slider').addEventListener('input',()=>{animSpeed=+$('speed-slider').value/10;$('speed-val').textContent=animSpeed.toFixed(1)+'x'});
-$('play-btn').addEventListener('click',()=>{playing=!playing;$('play-btn').innerHTML=playing?'&#9646;&#9646;  Pause':'&#9654;  Play'});
+$('play-btn').addEventListener('click',()=>{playing=!playing;$('play-btn').innerHTML=playing?'&#9646;&#9646; Pause':'&#9654; Play'});
+
+// Reset
+$('reset-btn').addEventListener('click',()=>{
+  mode='crimp';deformT=0;playing=false;animSpeed=1;
+  document.querySelectorAll('.mb').forEach(b=>b.classList.toggle('active',b.dataset.mode==='crimp'));
+  $('deform-slider').value=0;$('deform-val').textContent='0%';
+  $('speed-slider').value=10;$('speed-val').textContent='1.0x';
+  $('play-btn').innerHTML='&#9654; Play';
+  $('info-card').innerHTML=infoT.crimp;
+  rebuildMeshes();updateStats();
+});
 
 function wireS(sid,vid,pk,fmt){$(sid).addEventListener('input',()=>{const v=+($(sid).value);P[pk]=pk==='thetaDeg'?-v:v;$(vid).textContent=fmt(pk==='thetaDeg'?-v:v);buildStent();updateStats()})}
 const mm=v=>v.toFixed(2)+' mm',mm1=v=>v.toFixed(1)+' mm',dg=v=>v+'°',it=v=>''+v;
-wireS('od-slider','od-val','OD',mm1);wireS('len-slider','len-val','length',mm1);
-wireS('sw-slider','sw-val','strutW',mm);wireS('sd-slider','sd-val','strutD',mm);
+wireS('od1-slider','od1-val','OD1',mm1);wireS('od2-slider','od2-val','OD2',mm1);
+wireS('len-slider','len-val','length',mm1);wireS('sw-slider','sw-val','strutW',mm);wireS('sd-slider','sd-val','strutD',mm);
 wireS('h-slider','h-val','H',mm);wireS('l-slider','l-val','L',mm);
 wireS('angle-slider','angle-val','thetaDeg',dg);wireS('ncirc-slider','ncirc-val','nCirc',it);
 wireS('naxial-slider','naxial-val','nAxial',it);
@@ -264,71 +374,49 @@ $('vox-slider').addEventListener('input',()=>{$('vox-val').textContent=(+$('vox-
 
 function updateStats(){
   const aT=Math.abs(P.thetaDeg)*Math.PI/180;
-  let d=P.OD;if(mode==='crimp')d=P.OD*(1-deformT*.5);else if(mode==='expand')d=P.OD*(1+deformT*.33);
+  const avgOD=(P.OD1+P.OD2)/2;
+  let d=avgOD;if(mode==='crimp')d=avgOD*(1-deformT*.5);else if(mode==='expand')d=avgOD*(1+deformT*.33);
   $('diam-val').textContent=d.toFixed(2)+' mm';
   const sT=Math.sin(aT),cT=Math.cos(aT),nu=-(cT*(P.H/P.L+sT))/(sT*sT);
   $('nu-val').textContent=nu.toFixed(2);$('theta-val').textContent=P.thetaDeg.toFixed(1)+'°';
-  $('strut-count').textContent=lastSC;$('tag-dims').textContent=P.OD.toFixed(1)+' x '+P.length.toFixed(1)+' mm';
+  $('strut-count').textContent=lastSC;
+  const dimStr=P.OD1===P.OD2?P.OD1.toFixed(1)+' x '+P.length.toFixed(1)+' mm':P.OD1.toFixed(1)+'\u2192'+P.OD2.toFixed(1)+' x '+P.length.toFixed(1)+' mm';
+  $('tag-dims').textContent=dimStr;
 }
 
-// ─── STL GENERATION (SDF + Marching Cubes) ───
+// ─── STL GENERATION ───
 const TRI_TABLE=[[-1],[0,8,3,-1],[0,1,9,-1],[1,8,3,9,8,1,-1],[1,2,10,-1],[0,8,3,1,2,10,-1],[9,2,10,0,2,9,-1],[2,8,3,2,10,8,10,9,8,-1],[3,11,2,-1],[0,11,2,8,11,0,-1],[1,9,0,2,3,11,-1],[1,11,2,1,9,11,9,8,11,-1],[3,10,1,11,10,3,-1],[0,10,1,0,8,10,8,11,10,-1],[3,9,0,3,11,9,11,10,9,-1],[9,8,10,10,8,11,-1],[4,7,8,-1],[4,3,0,7,3,4,-1],[0,1,9,8,4,7,-1],[4,1,9,4,7,1,7,3,1,-1],[1,2,10,8,4,7,-1],[3,4,7,3,0,4,1,2,10,-1],[9,2,10,9,0,2,8,4,7,-1],[2,10,9,2,9,7,2,7,3,7,9,4,-1],[8,4,7,3,11,2,-1],[11,4,7,11,2,4,2,0,4,-1],[9,0,1,8,4,7,2,3,11,-1],[4,7,11,9,4,11,9,11,2,9,2,1,-1],[3,10,1,3,11,10,7,8,4,-1],[1,11,10,1,4,11,1,0,4,7,11,4,-1],[4,7,8,9,0,11,9,11,10,11,0,3,-1],[4,7,11,4,11,9,9,11,10,-1],[9,5,4,-1],[9,5,4,0,8,3,-1],[0,5,4,1,5,0,-1],[8,5,4,8,3,5,3,1,5,-1],[1,2,10,9,5,4,-1],[3,0,8,1,2,10,4,9,5,-1],[5,2,10,5,4,2,4,0,2,-1],[2,10,5,3,2,5,3,5,4,3,4,8,-1],[9,5,4,2,3,11,-1],[0,11,2,0,8,11,4,9,5,-1],[0,5,4,0,1,5,2,3,11,-1],[2,1,5,2,5,8,2,8,11,4,8,5,-1],[10,3,11,10,1,3,9,5,4,-1],[4,9,5,0,8,1,8,10,1,8,11,10,-1],[5,4,0,5,0,11,5,11,10,11,0,3,-1],[5,4,8,5,8,10,10,8,11,-1],[9,7,8,5,7,9,-1],[9,3,0,9,5,3,5,7,3,-1],[0,7,8,0,1,7,1,5,7,-1],[1,5,3,3,5,7,-1],[9,7,8,9,5,7,10,1,2,-1],[10,1,2,9,5,0,5,3,0,5,7,3,-1],[8,0,2,8,2,5,8,5,7,10,5,2,-1],[2,10,5,2,5,3,3,5,7,-1],[7,9,5,7,8,9,3,11,2,-1],[9,5,7,9,7,2,9,2,0,2,7,11,-1],[2,3,11,0,1,8,1,7,8,1,5,7,-1],[11,2,1,11,1,7,7,1,5,-1],[9,5,8,8,5,7,10,1,3,10,3,11,-1],[5,7,0,5,0,9,7,11,0,1,0,10,11,10,0,-1],[11,10,0,11,0,3,10,5,0,8,0,7,5,7,0,-1],[11,10,5,7,11,5,-1],[10,6,5,-1],[0,8,3,5,10,6,-1],[9,0,1,5,10,6,-1],[1,8,3,1,9,8,5,10,6,-1],[1,6,5,2,6,1,-1],[1,6,5,1,2,6,3,0,8,-1],[9,6,5,9,0,6,0,2,6,-1],[5,9,8,5,8,2,5,2,6,3,2,8,-1],[2,3,11,10,6,5,-1],[11,0,8,11,2,0,10,6,5,-1],[0,1,9,2,3,11,5,10,6,-1],[5,10,6,1,9,2,9,11,2,9,8,11,-1],[6,3,11,6,5,3,5,1,3,-1],[0,8,11,0,11,5,0,5,1,5,11,6,-1],[3,11,6,0,3,6,0,6,5,0,5,9,-1],[6,5,9,6,9,11,11,9,8,-1],[5,10,6,4,7,8,-1],[4,3,0,4,7,3,6,5,10,-1],[1,9,0,5,10,6,8,4,7,-1],[10,6,5,1,9,7,1,7,3,7,9,4,-1],[6,1,2,6,5,1,4,7,8,-1],[1,2,5,5,2,6,3,0,4,3,4,7,-1],[8,4,7,9,0,5,0,6,5,0,2,6,-1],[7,3,9,7,9,4,3,2,9,5,9,6,2,6,9,-1],[3,11,2,7,8,4,10,6,5,-1],[5,10,6,4,7,2,4,2,0,2,7,11,-1],[0,1,9,4,7,8,2,3,11,5,10,6,-1],[9,2,1,9,11,2,9,4,11,7,11,4,5,10,6,-1],[8,4,7,3,11,5,3,5,1,5,11,6,-1],[5,1,11,5,11,6,1,0,11,7,11,4,0,4,11,-1],[0,5,9,0,6,5,0,3,6,11,6,3,8,4,7,-1],[6,5,9,6,9,11,4,7,9,7,11,9,-1],[10,4,9,6,4,10,-1],[4,10,6,4,9,10,0,8,3,-1],[10,0,1,10,6,0,6,4,0,-1],[8,3,1,8,1,6,8,6,4,6,1,10,-1],[1,4,9,1,2,4,2,6,4,-1],[3,0,8,1,2,9,2,4,9,2,6,4,-1],[0,2,4,4,2,6,-1],[8,3,2,8,2,4,4,2,6,-1],[10,4,9,10,6,4,11,2,3,-1],[0,8,2,2,8,11,4,9,10,4,10,6,-1],[3,11,2,0,1,6,0,6,4,6,1,10,-1],[6,4,1,6,1,10,4,8,1,2,1,11,8,11,1,-1],[9,6,4,9,3,6,9,1,3,11,6,3,-1],[8,11,1,8,1,0,11,6,1,9,1,4,6,4,1,-1],[3,11,6,3,6,0,0,6,4,-1],[6,4,8,11,6,8,-1],[7,10,6,7,8,10,8,9,10,-1],[0,7,3,0,10,7,0,9,10,6,7,10,-1],[10,6,7,1,10,7,1,7,8,1,8,0,-1],[10,6,7,10,7,1,1,7,3,-1],[1,2,6,1,6,8,1,8,9,8,6,7,-1],[2,6,9,2,9,1,6,7,9,0,9,3,7,3,9,-1],[7,8,0,7,0,6,6,0,2,-1],[7,3,2,6,7,2,-1],[2,3,11,10,6,8,10,8,9,8,6,7,-1],[2,0,7,2,7,11,0,9,7,6,7,10,9,10,7,-1],[1,8,0,1,7,8,1,10,7,6,7,10,2,3,11,-1],[11,2,1,11,1,7,10,6,1,6,7,1,-1],[8,9,6,8,6,7,9,1,6,11,6,3,1,3,6,-1],[0,9,1,11,6,7,-1],[7,8,0,7,0,6,3,11,0,11,6,0,-1],[7,11,6,-1],[7,6,11,-1],[3,0,8,11,7,6,-1],[0,1,9,11,7,6,-1],[8,1,9,8,3,1,11,7,6,-1],[10,1,2,6,11,7,-1],[1,2,10,3,0,8,6,11,7,-1],[2,9,0,2,10,9,6,11,7,-1],[6,11,7,2,10,3,10,8,3,10,9,8,-1],[7,2,3,6,2,7,-1],[7,0,8,7,6,0,6,2,0,-1],[2,7,6,2,3,7,0,1,9,-1],[1,6,2,1,8,6,1,9,8,8,7,6,-1],[10,7,6,10,1,7,1,3,7,-1],[10,7,6,1,7,10,1,8,7,1,0,8,-1],[0,3,7,0,7,10,0,10,9,6,10,7,-1],[7,6,10,7,10,8,8,10,9,-1],[6,8,4,11,8,6,-1],[3,6,11,3,0,6,0,4,6,-1],[8,6,11,8,4,6,9,0,1,-1],[9,4,6,9,6,3,9,3,1,11,3,6,-1],[6,8,4,6,11,8,2,10,1,-1],[1,2,10,3,0,11,0,6,11,0,4,6,-1],[4,11,8,4,6,11,0,2,9,2,10,9,-1],[10,9,3,10,3,2,9,4,3,11,3,6,4,6,3,-1],[8,2,3,8,4,2,4,6,2,-1],[0,4,2,4,6,2,-1],[1,9,0,2,3,4,2,4,6,4,3,8,-1],[1,9,4,1,4,2,2,4,6,-1],[8,1,3,8,6,1,8,4,6,6,10,1,-1],[10,1,0,10,0,6,6,0,4,-1],[4,6,3,4,3,8,6,10,3,0,3,9,10,9,3,-1],[10,9,4,6,10,4,-1],[4,9,5,7,6,11,-1],[0,8,3,4,9,5,11,7,6,-1],[5,0,1,5,4,0,7,6,11,-1],[11,7,6,8,3,4,3,5,4,3,1,5,-1],[9,5,4,10,1,2,7,6,11,-1],[6,11,7,1,2,10,0,8,3,4,9,5,-1],[7,6,11,5,4,10,4,2,10,4,0,2,-1],[3,4,8,3,5,4,3,2,5,10,5,2,11,7,6,-1],[7,2,3,7,6,2,5,4,9,-1],[9,5,4,0,8,6,0,6,2,6,8,7,-1],[3,6,2,3,7,6,1,5,0,5,4,0,-1],[6,2,8,6,8,7,2,1,8,4,8,5,1,5,8,-1],[9,5,4,10,1,6,1,7,6,1,3,7,-1],[1,6,10,1,7,6,1,0,7,8,7,0,9,5,4,-1],[4,0,10,4,10,5,0,3,10,6,10,7,3,7,10,-1],[7,6,10,7,10,8,5,4,10,4,8,10,-1],[6,9,5,6,11,9,11,8,9,-1],[3,6,11,0,6,3,0,5,6,0,9,5,-1],[0,11,8,0,5,11,0,1,5,5,6,11,-1],[6,11,3,6,3,5,5,3,1,-1],[1,2,10,9,5,11,9,11,8,11,5,6,-1],[0,11,3,0,6,11,0,9,6,5,6,9,1,2,10,-1],[11,8,5,11,5,6,8,0,5,10,5,2,0,2,5,-1],[6,11,3,6,3,5,2,10,3,10,5,3,-1],[5,8,9,5,2,8,5,6,2,3,8,2,-1],[9,5,6,9,6,0,0,6,2,-1],[1,5,8,1,8,0,5,6,8,3,8,2,6,2,8,-1],[1,5,6,2,1,6,-1],[1,3,6,1,6,10,3,8,6,5,6,9,8,9,6,-1],[10,1,0,10,0,6,9,5,0,5,6,0,-1],[0,3,8,5,6,10,-1],[10,5,6,-1],[11,5,10,7,5,11,-1],[11,5,10,11,7,5,8,3,0,-1],[5,11,7,5,10,11,1,9,0,-1],[10,7,5,10,11,7,9,8,1,8,3,1,-1],[11,1,2,11,7,1,7,5,1,-1],[0,8,3,1,2,7,1,7,5,7,2,11,-1],[9,7,5,9,2,7,9,0,2,2,11,7,-1],[7,5,2,7,2,11,5,9,2,3,2,8,9,8,2,-1],[2,5,10,2,3,5,3,7,5,-1],[8,2,0,8,5,2,8,7,5,10,2,5,-1],[9,0,1,5,10,3,5,3,7,3,10,2,-1],[9,8,2,9,2,1,8,7,2,10,2,5,7,5,2,-1],[1,3,5,3,7,5,-1],[0,8,7,0,7,1,1,7,5,-1],[9,0,3,9,3,5,5,3,7,-1],[9,8,7,5,9,7,-1],[5,8,4,5,10,8,10,11,8,-1],[5,0,4,5,11,0,5,10,11,11,3,0,-1],[0,1,9,8,4,10,8,10,11,10,4,5,-1],[10,11,4,10,4,5,11,3,4,9,4,1,3,1,4,-1],[2,5,1,2,8,5,2,11,8,4,5,8,-1],[0,4,11,0,11,3,4,5,11,2,11,1,5,1,11,-1],[0,2,5,0,5,9,2,11,5,4,5,8,11,8,5,-1],[9,4,5,2,11,3,-1],[2,5,10,3,5,2,3,4,5,3,8,4,-1],[5,10,2,5,2,4,4,2,0,-1],[3,10,2,3,5,10,3,8,5,4,5,8,0,1,9,-1],[5,10,2,5,2,4,1,9,2,9,4,2,-1],[8,4,5,8,5,3,3,5,1,-1],[0,4,5,1,0,5,-1],[8,4,5,8,5,3,9,0,5,0,3,5,-1],[9,4,5,-1],[4,11,7,4,9,11,9,10,11,-1],[0,8,3,4,9,7,9,11,7,9,10,11,-1],[1,10,11,1,11,4,1,4,0,7,4,11,-1],[3,1,4,3,4,8,1,10,4,7,4,11,10,11,4,-1],[4,11,7,9,11,4,9,2,11,9,1,2,-1],[9,7,4,9,11,7,9,1,11,2,11,1,0,8,3,-1],[11,7,4,11,4,2,2,4,0,-1],[11,7,4,11,4,2,8,3,4,3,2,4,-1],[2,9,10,2,7,9,2,3,7,7,4,9,-1],[9,10,7,9,7,4,10,2,7,8,7,0,2,0,7,-1],[3,7,10,3,10,2,7,4,10,1,10,0,4,0,10,-1],[1,10,2,8,7,4,-1],[4,9,1,4,1,7,7,1,3,-1],[4,9,1,4,1,7,0,8,1,8,7,1,-1],[4,0,3,7,4,3,-1],[4,8,7,-1],[9,10,8,10,11,8,-1],[3,0,9,3,9,11,11,9,10,-1],[0,1,10,0,10,8,8,10,11,-1],[3,1,10,11,3,10,-1],[1,2,11,1,11,9,9,11,8,-1],[3,0,9,3,9,11,1,2,9,2,11,9,-1],[0,2,11,8,0,11,-1],[3,2,11,-1],[2,3,8,2,8,10,10,8,9,-1],[9,10,2,0,9,2,-1],[2,3,8,2,8,10,0,1,8,1,10,8,-1],[1,10,2,-1],[1,3,8,9,1,8,-1],[0,9,1,-1],[0,3,8,-1],[-1]];
 const EV=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
 const CV=[[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]];
 
 function generateSTL(pcb){
   return new Promise(resolve=>{
-    const{OD,length,H,L,thetaDeg,nCirc,nAxial,strutW,strutD}=P;
-    const Rm=(OD-strutD)/2,sR=strutW/2;
-    const aT=Math.abs(thetaDeg)*Math.PI/180;
-    const dx=L*Math.cos(aT),dy=L*Math.sin(aT),cW=2*dx,cH=H+2*dy;
-    const tc=nCirc*cW,ta=nAxial*cH,hl=length/2;
-    const s3=[];
-    const s2=[];
-    for(let r=0;r<nAxial;r++)for(let c=0;c<nCirc;c++){
-      let xo=c*cW;if(r%2===1)xo+=cW/2;const yo=r*cH-ta/2;
-      s2.push({s:[xo,yo],e:[xo,yo+H]});s2.push({s:[xo,yo],e:[xo-dx,yo-dy]});s2.push({s:[xo,yo],e:[xo+dx,yo-dy]});
-      s2.push({s:[xo,yo+H],e:[xo-dx,yo+H+dy]});s2.push({s:[xo,yo+H],e:[xo+dx,yo+H+dy]});
-    }
-    const seen=new Set();
-    for(const seg of s2){
-      let sx=((seg.s[0]%tc)+tc)%tc,sy=seg.s[1],ex=((seg.e[0]%tc)+tc)%tc,ey=seg.e[1];
-      if(Math.abs(sx-ex)>tc*.4)continue;
-      const zBound=hl+L+strutW;
-      if(sy<-zBound&&ey<-zBound)continue;if(sy>zBound&&ey>zBound)continue;
-      if(Math.abs(sx-ex)+Math.abs(sy-ey)<.001)continue;
-      const k=sx.toFixed(3)+','+sy.toFixed(3)+','+ex.toFixed(3)+','+ey.toFixed(3);
-      const kr=ex.toFixed(3)+','+ey.toFixed(3)+','+sx.toFixed(3)+','+sy.toFixed(3);
-      if(seen.has(k)||seen.has(kr))continue;seen.add(k);
-      for(let i=0;i<4;i++){const f0=i/4,f1=(i+1)/4;
-        const px0=sx*(1-f0)+ex*f0,py0=sy*(1-f0)+ey*f0,px1=sx*(1-f1)+ex*f1,py1=sy*(1-f1)+ey*f1;
-        const a0=(px0/tc)*Math.PI*2,a1=(px1/tc)*Math.PI*2;
-        s3.push({p0:[Rm*Math.cos(a0),py0,Rm*Math.sin(a0)],p1:[Rm*Math.cos(a1),py1,Rm*Math.sin(a1)],r:sR});
-      }
-    }
-    pcb(.1);
+    // Use genSegments3D with current deformation applied
+    const data=genSegments3D(true);
+    const{segs3d,sR}=data;
+    const{strutD}=P;
+    pcb(.08);
+
     const vR=(+$('vox-slider').value)/1000;
-    // Compute actual bounding box of all segments
-    let bbMinX=1e9,bbMinY=1e9,bbMinZ=1e9,bbMaxX=-1e9,bbMaxY=-1e9,bbMaxZ=-1e9;
-    for(const seg of s3){
-      const maxR=seg.r;
-      for(const p of[seg.p0,seg.p1]){
-        if(p[0]-maxR<bbMinX)bbMinX=p[0]-maxR;if(p[0]+maxR>bbMaxX)bbMaxX=p[0]+maxR;
-        if(p[1]-maxR<bbMinY)bbMinY=p[1]-maxR;if(p[1]+maxR>bbMaxY)bbMaxY=p[1]+maxR;
-        if(p[2]-maxR<bbMinZ)bbMinZ=p[2]-maxR;if(p[2]+maxR>bbMaxZ)bbMaxZ=p[2]+maxR;
-      }
-    }
-    const pad=strutW*2+vR*4;
-    const xn=bbMinX-pad,xx=bbMaxX+pad,yn=bbMinY-pad,yx=bbMaxY+pad,zn=bbMinZ-pad,zx=bbMaxZ+pad;
+    let bbX0=1e9,bbY0=1e9,bbZ0=1e9,bbX1=-1e9,bbY1=-1e9,bbZ1=-1e9;
+    for(const s of segs3d){for(const p of[s.p0,s.p1]){
+      if(p[0]-s.r<bbX0)bbX0=p[0]-s.r;if(p[0]+s.r>bbX1)bbX1=p[0]+s.r;
+      if(p[1]-s.r<bbY0)bbY0=p[1]-s.r;if(p[1]+s.r>bbY1)bbY1=p[1]+s.r;
+      if(p[2]-s.r<bbZ0)bbZ0=p[2]-s.r;if(p[2]+s.r>bbZ1)bbZ1=p[2]+s.r;
+    }}
+    const pad=Math.max(sR,strutD)*2+vR*4;
+    const xn=bbX0-pad,xx=bbX1+pad,yn=bbY0-pad,yx=bbY1+pad,zn=bbZ0-pad,zx=bbZ1+pad;
     let nx=Math.ceil((xx-xn)/vR)+1,ny=Math.ceil((yx-yn)/vR)+1,nz=Math.ceil((zx-zn)/vR)+1;
     const mx=200*200*500;if(nx*ny*nz>mx){const s=Math.cbrt(mx/(nx*ny*nz));nx=Math.ceil(nx*s);ny=Math.ceil(ny*s);nz=Math.ceil(nz*s)}
     const sdf=new Float32Array(nx*ny*nz).fill(1e6);
     const dX=(xx-xn)/(nx-1),dY=(yx-yn)/(ny-1),dZ=(zx-zn)/(nz-1);
-    let si=0;const tot=s3.length;
+    pcb(.1);
+
+    let si=0;const tot=segs3d.length;
     function chunk(){
       const cs=Math.max(1,Math.floor(tot/20)),end=Math.min(si+cs,tot);
       for(;si<end;si++){
-        const{p0,p1,r}=s3[si];
+        const{p0,p1,r}=segs3d[si];
         const bx0=Math.max(0,Math.floor((Math.min(p0[0],p1[0])-r-dX*2-xn)/dX)-1);
         const bx1=Math.min(nx,Math.ceil((Math.max(p0[0],p1[0])+r+dX*2-xn)/dX)+2);
         const by0=Math.max(0,Math.floor((Math.min(p0[1],p1[1])-r-dY*2-yn)/dY)-1);
@@ -337,37 +425,15 @@ function generateSTL(pcb){
         const bz1=Math.min(nz,Math.ceil((Math.max(p0[2],p1[2])+r+dZ*2-zn)/dZ)+2);
         const dx3=p1[0]-p0[0],dy3=p1[1]-p0[1],dz3=p1[2]-p0[2],lsq=dx3*dx3+dy3*dy3+dz3*dz3;
         for(let i=bx0;i<bx1;i++){const px=xn+i*dX;for(let j=by0;j<by1;j++){const py=yn+j*dY;for(let k=bz0;k<bz1;k++){
-          const pz=zn+k*dZ,ax=px-p0[0],ay=py-p0[1],az=pz-p0[2];
-          let t=lsq<1e-20?0:(ax*dx3+ay*dy3+az*dz3)/lsq;t=t<0?0:t>1?1:t;
+          const pz=zn+k*dZ,apx=px-p0[0],apy=py-p0[1],apz=pz-p0[2];
+          let t=lsq<1e-20?0:(apx*dx3+apy*dy3+apz*dz3)/lsq;t=t<0?0:t>1?1:t;
           const cx=p0[0]+t*dx3-px,cy=p0[1]+t*dy3-py,cz=p0[2]+t*dz3-pz;
           const d=Math.sqrt(cx*cx+cy*cy+cz*cz)-r;
           const idx=i*ny*nz+j*nz+k;if(d<sdf[idx])sdf[idx]=d;
         }}}
       }
       pcb(.1+.6*(si/tot));
-      if(si<tot)setTimeout(chunk,0);else clipCylinder();
-    }
-    function clipCylinder(){
-      // Intersect lattice SDF with hollow cylinder to get clean inner/outer bore
-      // Cylinder axis = Y. Radial = sqrt(x^2 + z^2)
-      const Rout=Rm+strutD/2;  // outer radius of wall
-      const Rin=Rm-strutD/2;   // inner radius of wall
-      for(let i=0;i<nx;i++){
-        const px=xn+i*dX;
-        for(let k=0;k<nz;k++){
-          const pz=zn+k*dZ;
-          const rDist=Math.sqrt(px*px+pz*pz);
-          // Hollow cylinder SDF: positive outside, negative inside shell
-          const cylSDF=Math.max(rDist-Rout, Rin-rDist);
-          for(let j=0;j<ny;j++){
-            const idx=i*ny*nz+j*nz+k;
-            // Intersection = max of both SDFs
-            if(cylSDF>sdf[idx]) sdf[idx]=cylSDF;
-          }
-        }
-      }
-      pcb(.73);
-      runMC();
+      if(si<tot)setTimeout(chunk,0);else runMC();
     }
     function runMC(){
       pcb(.75);const verts=[],faces=[],cache={};
@@ -422,11 +488,13 @@ $('dl-btn').addEventListener('click',async()=>{
     const{buf,nTri}=await generateSTL(p=>{bar.style.width=Math.round(p*100)+'%'});
     const blob=new Blob([buf],{type:'application/octet-stream'}),url=URL.createObjectURL(blob);
     const a=document.createElement('a');a.href=url;
-    a.download='stent_'+P.OD.toFixed(1)+'x'+P.length.toFixed(0)+'mm_t'+Math.abs(P.thetaDeg)+'.stl';
+    const taper=P.OD1!==P.OD2?'_taper':'';
+    const def=deformT>0?'_'+mode+Math.round(deformT*100):'';
+    a.download='stent_'+P.OD1.toFixed(1)+'x'+P.length.toFixed(0)+'mm'+taper+def+'.stl';
     document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
-    btn.textContent='\u2713  '+(nTri/1000).toFixed(0)+'k triangles downloaded';
-    setTimeout(()=>{btn.textContent='\u2B07  Generate & download STL';btn.disabled=false;prog.style.display='none'},4000);
-  }catch(e){btn.textContent='Error \u2014 try coarser resolution';btn.disabled=false;console.error(e);setTimeout(()=>{btn.textContent='\u2B07  Generate & download STL';prog.style.display='none'},3000)}
+    btn.textContent='\u2713 '+(nTri/1000).toFixed(0)+'k triangles';
+    setTimeout(()=>{btn.textContent='\u2B07 Generate & download STL';btn.disabled=false;prog.style.display='none'},4000);
+  }catch(e){btn.textContent='Error \u2014 try coarser resolution';btn.disabled=false;console.error(e);setTimeout(()=>{btn.textContent='\u2B07 Generate & download STL';prog.style.display='none'},3000)}
 });
 
 function resize(){const vp=canvas.parentElement,w=vp.clientWidth,h=vp.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix()}
@@ -434,7 +502,7 @@ window.addEventListener('resize',resize);
 let aP=0;
 function animate(){
   requestAnimationFrame(animate);
-  if(playing){aP+=.008*animSpeed;deformT=Math.sin(aP)*.5+.5;$('deform-slider').value=Math.round(deformT*100);$('deform-val').textContent=Math.round(deformT*100)+'%';rebuildMeshes(deformT);updateStats()}
+  if(playing){aP+=.008*animSpeed;deformT=Math.sin(aP)*.5+.5;$('deform-slider').value=Math.round(deformT*100);$('deform-val').textContent=Math.round(deformT*100)+'%';rebuildMeshes();updateStats()}
   if(!isDrag)orbitTheta+=playing?.003:.002;
   camera.position.set(orbitDist*Math.sin(orbitPhi)*Math.cos(orbitTheta),orbitDist*Math.cos(orbitPhi),orbitDist*Math.sin(orbitPhi)*Math.sin(orbitTheta));
   camera.lookAt(0,0,0);renderer.render(scene,camera);
