@@ -49,6 +49,9 @@
   .cd{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px;vertical-align:middle}
   .btn-row{display:flex;gap:8px}
   .btn-row>*{flex:1}
+  select{-webkit-appearance:none;appearance:none;width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:12px;padding:10px 32px 10px 12px;cursor:pointer;outline:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a7870' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;transition:border-color .2s}
+  select:hover{border-color:rgba(255,255,255,.15)}
+  select:focus{border-color:var(--accent)}
 
   @media(max-width:860px){
     .app{grid-template-columns:1fr;grid-template-rows:auto minmax(42vh,48vh) 1fr auto;height:auto;min-height:100vh}
@@ -119,6 +122,15 @@
     <div class="ps" id="sec-cell">
       <h3>Auxetic cell <span class="tog">&minus;</span></h3>
       <div class="sb">
+        <div class="sg">
+          <div class="sl"><span>Cell topology</span></div>
+          <select id="cell-type">
+            <option value="reentrant" selected>Re-entrant honeycomb</option>
+            <option value="arrowhead">Double arrowhead</option>
+            <option value="antichiral">Anti-tetrachiral</option>
+            <option value="star">Star honeycomb</option>
+          </select>
+        </div>
         <div class="r2">
           <div class="sg"><div class="sl"><span>H (vert rib)</span><span class="v" id="h-val">0.60 mm</span></div><input type="range" id="h-slider" min="0.20" max="1.20" value="0.60" step="0.02"></div>
           <div class="sg"><div class="sl"><span>L (diag rib)</span><span class="v" id="l-val">0.50 mm</span></div><input type="range" id="l-slider" min="0.20" max="1.00" value="0.50" step="0.02"></div>
@@ -171,7 +183,7 @@ canvas.addEventListener('touchend',e=>{isDrag=false;if(e.touches.length<2)lpd=0}
 if('ontouchstart'in window){const h=document.getElementById('interact-hint');if(h)h.textContent='swipe to orbit \u00b7 pinch to zoom'}
 document.querySelectorAll('.ps h3').forEach(h=>{h.addEventListener('click',()=>{const s=h.closest('.ps');s.classList.toggle('closed');h.querySelector('.tog').textContent=s.classList.contains('closed')?'+':'\u2212'})});
 
-const P={OD1:3,OD2:3,length:15,H:.6,L:.5,thetaDeg:-25,nCirc:10,nAxial:14,strutW:.2,strutD:.2};
+const P={OD1:3,OD2:3,length:15,H:.6,L:.5,thetaDeg:-25,nCirc:10,nAxial:14,strutW:.2,strutD:.2,cellType:'reentrant'};
 let mode='crimp',deformT=0,animSpeed=1,playing=false,stentGroup=null,lastSC=0;
 const sM=new THREE.MeshStandardMaterial({color:0x5dcaa5,metalness:.4,roughness:.5});
 const hM=new THREE.MeshStandardMaterial({color:0x85b7eb,metalness:.4,roughness:.5});
@@ -181,34 +193,8 @@ const $=id=>document.getElementById(id);
 function genSegments3D(applyDeform){
   const{OD1,OD2,length,H,L,thetaDeg,nCirc,nAxial,strutW,strutD}=P;
   const sR=strutW/2;
-  const aT=Math.abs(thetaDeg)*Math.PI/180;
-  const dx=L*Math.cos(aT),dy=L*Math.sin(aT),cW=2*dx,cH=H+2*dy;
-  const tc=nCirc*cW,ta=nAxial*cH,hl=length/2;
-
-  // 2D lattice
-  const s2=[];
-  for(let r=0;r<nAxial;r++)for(let c=0;c<nCirc;c++){
-    let xo=c*cW;if(r%2===1)xo+=cW/2;const yo=r*cH-ta/2;
-    s2.push({s:[xo,yo],e:[xo,yo+H],t:'v'});
-    s2.push({s:[xo,yo],e:[xo-dx,yo-dy],t:'d'});
-    s2.push({s:[xo,yo],e:[xo+dx,yo-dy],t:'d'});
-    s2.push({s:[xo,yo+H],e:[xo-dx,yo+H+dy],t:'d'});
-    s2.push({s:[xo,yo+H],e:[xo+dx,yo+H+dy],t:'d'});
-  }
-
-  // Dedup + filter
-  const seen=new Set(),uniq=[];
-  const zB=hl+L+strutW;
-  for(const seg of s2){
-    let sx=((seg.s[0]%tc)+tc)%tc,sy=seg.s[1],ex=((seg.e[0]%tc)+tc)%tc,ey=seg.e[1];
-    if(Math.abs(sx-ex)>tc*.4)continue;
-    if(sy<-zB&&ey<-zB)continue;if(sy>zB&&ey>zB)continue;
-    if(Math.abs(sx-ex)+Math.abs(sy-ey)<.001)continue;
-    const k=sx.toFixed(3)+','+sy.toFixed(3)+','+ex.toFixed(3)+','+ey.toFixed(3);
-    const kr=ex.toFixed(3)+','+ey.toFixed(3)+','+sx.toFixed(3)+','+sy.toFixed(3);
-    if(seen.has(k)||seen.has(kr))continue;seen.add(k);
-    uniq.push({s:[sx,sy],e:[ex,ey],t:seg.t});
-  }
+  const{uniq,tc,ta}=gen2DLattice();
+  const hl=length/2;
 
   // Deformation params
   const t=applyDeform?deformT:0;
@@ -284,14 +270,75 @@ function buildStent(){
   orbitDist=Math.max(12,P.length*1.0+Math.max(P.OD1,P.OD2)*3);
 }
 
+// ─── Shared 2D lattice generator (used by both preview and STL) ───
+function gen2DLattice(){
+  const{H,L,thetaDeg,nCirc,nAxial,strutW,cellType}=P;
+  const aT=Math.abs(thetaDeg)*Math.PI/180;
+  const dx=L*Math.cos(aT),dy=L*Math.sin(aT);
+  let cW,cH;
+  if(cellType==='reentrant'){cW=2*dx;cH=H+2*dy}
+  else if(cellType==='arrowhead'){cW=2*L*Math.sin(aT);cH=2*L*Math.cos(aT)+H}
+  else if(cellType==='antichiral'){cW=H+L;cH=H+L}
+  else{cW=2*H;cH=2*H}
+  const tc=nCirc*cW,ta=nAxial*cH;
+  const s2=[];
+  if(cellType==='reentrant'){
+    for(let r=0;r<nAxial;r++)for(let c=0;c<nCirc;c++){
+      let xo=c*cW;if(r%2===1)xo+=cW/2;const yo=r*cH-ta/2;
+      s2.push({s:[xo,yo],e:[xo,yo+H],t:'v'});
+      s2.push({s:[xo,yo],e:[xo-dx,yo-dy],t:'d'});s2.push({s:[xo,yo],e:[xo+dx,yo-dy],t:'d'});
+      s2.push({s:[xo,yo+H],e:[xo-dx,yo+H+dy],t:'d'});s2.push({s:[xo,yo+H],e:[xo+dx,yo+H+dy],t:'d'});
+    }
+  } else if(cellType==='arrowhead'){
+    const aw=L*Math.sin(aT),ah=L*Math.cos(aT);
+    for(let r=0;r<nAxial;r++)for(let c=0;c<nCirc;c++){
+      const xo=c*cW+cW/2,yo=r*cH-ta/2,yMid=yo+cH/2;
+      s2.push({s:[xo,yo],e:[xo-aw,yMid],t:'d'});s2.push({s:[xo,yo],e:[xo+aw,yMid],t:'d'});
+      s2.push({s:[xo,yo+cH],e:[xo-aw,yMid],t:'d'});s2.push({s:[xo,yo+cH],e:[xo+aw,yMid],t:'d'});
+      s2.push({s:[xo-aw,yMid],e:[xo-cW/2,yMid],t:'v'});s2.push({s:[xo+aw,yMid],e:[xo+cW/2,yMid],t:'v'});
+    }
+  } else if(cellType==='antichiral'){
+    const nodeR=H*0.25,nSeg=8;
+    for(let r=0;r<nAxial;r++)for(let c=0;c<nCirc;c++){
+      const xo=c*cW+cW/2,yo=r*cH-ta/2+cH/2;
+      for(let i=0;i<nSeg;i++){const a1=i*Math.PI*2/nSeg,a2=(i+1)*Math.PI*2/nSeg;
+        s2.push({s:[xo+nodeR*Math.cos(a1),yo+nodeR*Math.sin(a1)],e:[xo+nodeR*Math.cos(a2),yo+nodeR*Math.sin(a2)],t:'v'});}
+      s2.push({s:[xo+nodeR,yo],e:[xo+cW-nodeR,yo],t:'d'});
+      s2.push({s:[xo,yo-nodeR],e:[xo+cW,yo+nodeR],t:'d'});
+      s2.push({s:[xo-nodeR,yo],e:[xo+nodeR,yo+cH],t:'d'});
+    }
+  } else if(cellType==='star'){
+    const a=H*0.7,b=H;
+    for(let r=0;r<nAxial;r++)for(let c=0;c<nCirc;c++){
+      const xo=c*cW+cW/2,yo=r*cH-ta/2+cH/2;
+      const pts=[];for(let i=0;i<4;i++){const ang=Math.PI/4+i*Math.PI/2;pts.push([xo+a*Math.cos(ang),yo+a*Math.sin(ang)])}
+      for(let i=0;i<4;i++)s2.push({s:pts[i],e:pts[(i+1)%4],t:'v'});
+      s2.push({s:pts[0],e:[xo,yo+b],t:'d'});s2.push({s:pts[1],e:[xo+b,yo],t:'d'});
+      s2.push({s:pts[2],e:[xo,yo-b],t:'d'});s2.push({s:pts[3],e:[xo-b,yo],t:'d'});
+    }
+  }
+  // Dedup
+  const seen=new Set(),uniq=[];
+  const zB=P.length/2+L+strutW;
+  for(const seg of s2){
+    let sx=((seg.s[0]%tc)+tc)%tc,sy=seg.s[1],ex=((seg.e[0]%tc)+tc)%tc,ey=seg.e[1];
+    if(Math.abs(sx-ex)>tc*.4)continue;
+    if(sy<-zB&&ey<-zB)continue;if(sy>zB&&ey>zB)continue;
+    if(Math.abs(sx-ex)+Math.abs(sy-ey)<.001)continue;
+    const k=sx.toFixed(3)+','+sy.toFixed(3)+','+ex.toFixed(3)+','+ey.toFixed(3);
+    const kr=ex.toFixed(3)+','+ey.toFixed(3)+','+sx.toFixed(3)+','+sy.toFixed(3);
+    if(seen.has(k)||seen.has(kr))continue;seen.add(k);uniq.push({s:[sx,sy],e:[ex,ey],t:seg.t});
+  }
+  return{uniq,tc,ta,cW,cH};
+}
+
 function rebuildMeshes(){
   while(stentGroup.children.length){const c=stentGroup.children[0];if(c.geometry)c.geometry.dispose();stentGroup.remove(c)}
-
   const{OD1,OD2,length,H,L,thetaDeg,nCirc,nAxial,strutW,strutD}=P;
   const sR=strutW/2;
-  const aT=Math.abs(thetaDeg)*Math.PI/180;
-  const dx=L*Math.cos(aT),dy=L*Math.sin(aT),cW=2*dx,cH=H+2*dy;
-  const tc=nCirc*cW,ta=nAxial*cH,hl=length/2;
+  const hl=length/2;
+  const{uniq,tc,ta}=gen2DLattice();
+  lastSC=uniq.length;
 
   const t=deformT;
   let bend=0,flex=0,axS=1,crimpF=0,expandF=0;
@@ -306,27 +353,6 @@ function rebuildMeshes(){
     if(crimpF>0)R*=(1-crimpF*.5);if(expandF>0)R*=(1+expandF*.33);
     return R;
   }
-
-  // 2D segments
-  const s2=[];
-  for(let r=0;r<nAxial;r++)for(let c=0;c<nCirc;c++){
-    let xo=c*cW;if(r%2===1)xo+=cW/2;const yo=r*cH-ta/2;
-    s2.push({s:[xo,yo],e:[xo,yo+H],t:'v'});
-    s2.push({s:[xo,yo],e:[xo-dx,yo-dy],t:'d'});s2.push({s:[xo,yo],e:[xo+dx,yo-dy],t:'d'});
-    s2.push({s:[xo,yo+H],e:[xo-dx,yo+H+dy],t:'d'});s2.push({s:[xo,yo+H],e:[xo+dx,yo+H+dy],t:'d'});
-  }
-  const seen=new Set(),uniq=[];
-  const zB=hl+L+strutW;
-  for(const seg of s2){
-    let sx=((seg.s[0]%tc)+tc)%tc,sy=seg.s[1],ex=((seg.e[0]%tc)+tc)%tc,ey=seg.e[1];
-    if(Math.abs(sx-ex)>tc*.4)continue;
-    if(sy<-zB&&ey<-zB)continue;if(sy>zB&&ey>zB)continue;
-    if(Math.abs(sx-ex)+Math.abs(sy-ey)<.001)continue;
-    const k=sx.toFixed(3)+','+sy.toFixed(3)+','+ex.toFixed(3)+','+ey.toFixed(3);
-    const kr=ex.toFixed(3)+','+ey.toFixed(3)+','+sx.toFixed(3)+','+sy.toFixed(3);
-    if(seen.has(k)||seen.has(kr))continue;seen.add(k);uniq.push({s:[sx,sy],e:[ex,ey],t:seg.t});
-  }
-  lastSC=uniq.length;
 
   for(const seg of uniq){
     const path=[];
@@ -370,6 +396,7 @@ wireS('len-slider','len-val','length',mm1);wireS('sw-slider','sw-val','strutW',m
 wireS('h-slider','h-val','H',mm);wireS('l-slider','l-val','L',mm);
 wireS('angle-slider','angle-val','thetaDeg',dg);wireS('ncirc-slider','ncirc-val','nCirc',it);
 wireS('naxial-slider','naxial-val','nAxial',it);
+$('cell-type').addEventListener('change',()=>{P.cellType=$('cell-type').value;buildStent();updateStats()});
 $('vox-slider').addEventListener('input',()=>{$('vox-val').textContent=(+$('vox-slider').value/1000).toFixed(3)+' mm'});
 
 function updateStats(){
