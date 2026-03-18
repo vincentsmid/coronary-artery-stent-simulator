@@ -3,84 +3,106 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Auxetic Stent — Animation &amp; STL Export</title>
+<title>Auxetic Stent — Design Studio</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500&family=JetBrains+Mono:wght@400&display=swap');
   *{margin:0;padding:0;box-sizing:border-box}
-  :root{--bg:#0a0b0d;--surface:#13151a;--border:rgba(255,255,255,0.06);--text:#e8e6e1;--text-dim:#7a7870;--accent:#5dcaa5;--accent-dim:rgba(93,202,165,0.15);--coral:#f0997b;--blue:#85b7eb}
+  :root{--bg:#0a0b0d;--surface:#13151a;--border:rgba(255,255,255,0.06);--text:#e8e6e1;--text-dim:#7a7870;--accent:#5dcaa5;--accent-dim:rgba(93,202,165,0.15);--coral:#f0997b;--blue:#85b7eb;--warn:#fac775;--warn-dim:rgba(250,199,117,0.12)}
   body{background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;overflow-x:hidden;min-height:100vh}
   .app{display:grid;grid-template-columns:1fr 360px;grid-template-rows:auto 1fr auto;height:100vh}
-  .header{grid-column:1/-1;padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-  .header h1{font-size:14px;font-weight:500;letter-spacing:.04em;color:var(--text-dim);text-transform:uppercase}
+  .app.compare-mode{grid-template-columns:1fr 1fr 360px}
+  .header{grid-column:1/-1;padding:16px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .header h1{font-size:13px;font-weight:500;letter-spacing:.04em;color:var(--text-dim);text-transform:uppercase}
   .header .tag{font-size:10px;font-family:'JetBrains Mono',monospace;background:var(--accent-dim);color:var(--accent);padding:2px 8px;border-radius:4px}
   .viewport{position:relative;overflow:hidden;background:var(--bg)}
-  #canvas3d{width:100%;height:100%;display:block}
-  .viewport-overlay{position:absolute;bottom:16px;left:16px;display:flex;gap:6px;pointer-events:none;flex-wrap:wrap}
-  .stat-pill{pointer-events:auto;font-size:10px;font-family:'JetBrains Mono',monospace;background:rgba(19,21,26,.88);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:5px;padding:5px 10px;color:var(--text-dim);display:flex;gap:5px;align-items:center}
+  .viewport canvas{width:100%;height:100%;display:block}
+  .viewport-overlay{position:absolute;bottom:14px;left:14px;display:flex;gap:5px;pointer-events:none;flex-wrap:wrap}
+  .viewport-label{position:absolute;top:12px;left:14px;font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-dim);background:rgba(19,21,26,.8);padding:4px 10px;border-radius:4px;border:1px solid var(--border);display:none}
+  .compare-mode .viewport-label{display:block}
+  .viewport-b{display:none;border-left:1px solid var(--border)}
+  .compare-mode .viewport-b{display:block}
+  .stat-pill{pointer-events:auto;font-size:9px;font-family:'JetBrains Mono',monospace;background:rgba(19,21,26,.88);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:5px;padding:4px 8px;color:var(--text-dim);display:flex;gap:4px;align-items:center}
   .stat-pill .val{color:var(--accent);font-weight:500}
-  .panel{background:var(--surface);border-left:1px solid var(--border);padding:20px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:22px}
-  .ps{display:flex;flex-direction:column;gap:14px}
-  .ps h3{font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);padding-bottom:8px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none}
-  .ps h3 .tog{font-size:13px;color:var(--text-dim);font-weight:300;width:18px;text-align:center}
-  .ps .sb{display:flex;flex-direction:column;gap:14px;overflow:hidden;transition:max-height .3s ease,opacity .2s ease}
+  .panel{background:var(--surface);border-left:1px solid var(--border);padding:18px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:20px}
+  .ps{display:flex;flex-direction:column;gap:12px}
+  .ps h3{font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);padding-bottom:7px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none}
+  .ps h3 .tog{font-size:13px;color:var(--text-dim);font-weight:300;width:16px;text-align:center}
+  .ps .sb{display:flex;flex-direction:column;gap:12px;overflow:hidden;transition:max-height .3s ease,opacity .2s ease}
   .ps.closed .sb{max-height:0!important;opacity:0;pointer-events:none}
-  .mode-buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-  .mb{background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text-dim);font-family:'DM Sans',system-ui,sans-serif;font-size:11px;font-weight:400;padding:10px 4px;cursor:pointer;transition:all .2s;text-align:center;line-height:1.3}
+  .mode-buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+  .mb{background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text-dim);font-family:'DM Sans',system-ui,sans-serif;font-size:11px;font-weight:400;padding:9px 3px;cursor:pointer;transition:all .2s;text-align:center;line-height:1.3}
   .mb:hover{border-color:rgba(255,255,255,.12);color:var(--text)}
   .mb.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:500}
-  .mb .icon{display:block;font-size:15px;margin-bottom:2px}
-  .sg{display:flex;flex-direction:column;gap:7px}
+  .mb .icon{display:block;font-size:14px;margin-bottom:1px}
+  .sg{display:flex;flex-direction:column;gap:6px}
   .sl{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text-dim)}
   .sl .v{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)}
   input[type="range"]{-webkit-appearance:none;appearance:none;width:100%;height:4px;background:rgba(255,255,255,.08);border-radius:2px;outline:none;cursor:pointer;margin:2px 0}
-  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);cursor:pointer}
-  input[type="range"]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);cursor:pointer}
-  .r2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .bm,.bd,.br{width:100%;border:none;border-radius:8px;font-family:'DM Sans',system-ui,sans-serif;font-size:13px;font-weight:500;padding:12px;cursor:pointer;transition:all .15s;letter-spacing:.02em}
+  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);cursor:pointer}
+  input[type="range"]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);cursor:pointer}
+  .r2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+  .bm,.bd,.br{width:100%;border:none;border-radius:7px;font-family:'DM Sans',system-ui,sans-serif;font-size:12px;font-weight:500;padding:10px;cursor:pointer;transition:all .15s;letter-spacing:.02em}
   .bm{background:var(--accent);color:var(--bg)}.bm:hover{filter:brightness(1.1)}
   .bd{background:rgba(255,255,255,.05);color:var(--text);border:1px solid var(--border)}.bd:hover{border-color:var(--accent);color:var(--accent)}.bd:disabled{opacity:.4;cursor:default;border-color:var(--border);color:var(--text-dim)}
   .br{background:transparent;color:var(--text-dim);border:1px solid var(--border);font-size:11px;padding:8px}.br:hover{border-color:rgba(255,255,255,.15);color:var(--text)}
+  .bw{background:var(--warn-dim);color:var(--warn);border:1px solid rgba(250,199,117,.2)}.bw:hover{filter:brightness(1.1)}
   .prog{width:100%;height:3px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden;display:none}
   .prog .bar{height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width .15s}
-  .ic{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:7px;padding:10px;font-size:11px;line-height:1.6;color:var(--text-dim)}
+  .ic{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:7px;padding:9px;font-size:11px;line-height:1.5;color:var(--text-dim)}
   .ic strong{color:var(--text);font-weight:500}.ic .hl{color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:10px}
-  .footer{grid-column:1/-1;border-top:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:16px;font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;flex-wrap:wrap}
+  .footer{grid-column:1/-1;border-top:1px solid var(--border);padding:8px 24px;display:flex;align-items:center;gap:14px;font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;flex-wrap:wrap}
   .footer .sep{opacity:.3}
   .cd{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px;vertical-align:middle}
-  .btn-row{display:flex;gap:8px}
-  .btn-row>*{flex:1}
-  select{-webkit-appearance:none;appearance:none;width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:12px;padding:10px 32px 10px 12px;cursor:pointer;outline:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a7870' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;transition:border-color .2s}
-  select:hover{border-color:rgba(255,255,255,.15)}
-  select:focus{border-color:var(--accent)}
-
-  @media(max-width:860px){
-    .app{grid-template-columns:1fr;grid-template-rows:auto minmax(42vh,48vh) 1fr auto;height:auto;min-height:100vh}
+  .btn-row{display:flex;gap:6px}.btn-row>*{flex:1}
+  select{-webkit-appearance:none;appearance:none;width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:12px;padding:9px 32px 9px 12px;cursor:pointer;outline:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a7870' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;transition:border-color .2s}
+  select:hover{border-color:rgba(255,255,255,.15)}select:focus{border-color:var(--accent)}
+  .preset-list{display:flex;flex-direction:column;gap:4px;max-height:140px;overflow-y:auto}
+  .preset-item{display:flex;align-items:center;gap:6px;padding:6px 8px;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:5px;font-size:11px;cursor:pointer;transition:all .15s}
+  .preset-item:hover{border-color:var(--accent);color:var(--accent)}
+  .preset-item .pi-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .preset-item .pi-del{color:var(--text-dim);font-size:13px;opacity:.5;cursor:pointer;padding:0 2px}.preset-item .pi-del:hover{opacity:1;color:var(--coral)}
+  input[type="text"]{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:12px;padding:9px 12px;outline:none;transition:border-color .2s}
+  input[type="text"]:focus{border-color:var(--accent)}
+  input[type="text"]::placeholder{color:var(--text-dim);opacity:.5}
+  .hidden-input{position:absolute;opacity:0;pointer-events:none;width:0;height:0}
+  @media(max-width:960px){
+    .app{grid-template-columns:1fr;grid-template-rows:auto minmax(40vh,46vh) 1fr auto;height:auto;min-height:100vh}
+    .app.compare-mode{grid-template-columns:1fr;grid-template-rows:auto minmax(25vh,30vh) minmax(25vh,30vh) 1fr auto}
+    .viewport-b{border-left:none;border-top:1px solid var(--border)}
     .header{padding:12px 14px;gap:6px}.header h1{font-size:12px;width:100%}
-    .viewport{touch-action:none}.viewport-overlay{bottom:10px;left:8px;right:8px;justify-content:center}
+    .viewport{touch-action:none}.viewport-overlay{bottom:8px;left:6px;right:6px;justify-content:center}
     .panel{border-left:none;border-top:1px solid var(--border);padding:14px 14px 24px}
     input[type="range"]{height:5px}
     input[type="range"]::-webkit-slider-thumb{width:20px;height:20px;border-width:3px}
     input[type="range"]::-moz-range-thumb{width:20px;height:20px;border-width:3px}
-    .bm,.bd{font-size:13px;padding:12px}
     .footer .sep{display:none}.footer>span{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:3px;padding:2px 6px}
   }
-  @media(max-width:400px){.mode-buttons{grid-template-columns:repeat(2,1fr)}.stat-pill:nth-child(n+4){display:none}}
+  @media(max-width:400px){.mode-buttons{grid-template-columns:repeat(2,1fr)}.stat-pill:nth-child(n+3){display:none}}
 </style>
 </head>
 <body>
-<div class="app">
+<div class="app" id="app">
   <div class="header">
     <h1>Auxetic bio-inspired stent</h1>
     <span class="tag" id="tag-dims">3.0 x 15.0 mm</span>
-    <span class="tag">re-entrant honeycomb</span>
+    <span class="tag" id="tag-cell">re-entrant honeycomb</span>
   </div>
-  <div class="viewport">
-    <canvas id="canvas3d"></canvas>
+  <div class="viewport" id="vp-a">
+    <canvas id="c3d-a"></canvas>
+    <div class="viewport-label">A — current</div>
     <div class="viewport-overlay">
-      <div class="stat-pill">diam <span class="val" id="diam-val">3.00 mm</span></div>
+      <div class="stat-pill">diam <span class="val" id="diam-val">3.00</span></div>
       <div class="stat-pill">&nu; <span class="val" id="nu-val">-1.40</span></div>
-      <div class="stat-pill">&theta; <span class="val" id="theta-val">-25.0°</span></div>
+      <div class="stat-pill">&theta; <span class="val" id="theta-val">-25°</span></div>
       <div class="stat-pill">struts <span class="val" id="strut-count">—</span></div>
+    </div>
+  </div>
+  <div class="viewport viewport-b" id="vp-b">
+    <canvas id="c3d-b"></canvas>
+    <div class="viewport-label">B — snapshot</div>
+    <div class="viewport-overlay">
+      <div class="stat-pill">snapshot <span class="val" id="cmp-info">—</span></div>
     </div>
   </div>
   <div class="panel">
@@ -96,11 +118,8 @@
         </div>
         <div class="sg"><div class="sl"><span>Deformation</span><span class="v" id="deform-val">0%</span></div><input type="range" id="deform-slider" min="0" max="100" value="0" step="1"></div>
         <div class="sg"><div class="sl"><span>Speed</span><span class="v" id="speed-val">1.0x</span></div><input type="range" id="speed-slider" min="1" max="30" value="10" step="1"></div>
-        <div class="btn-row">
-          <button class="bm" id="play-btn">&#9654; Play</button>
-          <button class="br" id="reset-btn">&#8634; Reset</button>
-        </div>
-        <div class="ic" id="info-card"><strong>Crimping</strong> — Negative Poisson's ratio contracts laterally when compressed axially, enabling catheter delivery at <span class="hl">50%</span> diameter.</div>
+        <div class="btn-row"><button class="bm" id="play-btn">&#9654; Play</button><button class="br" id="reset-btn">&#8634; Reset</button></div>
+        <div class="ic" id="info-card"><strong>Crimping</strong> — Negative Poisson's ratio contracts laterally when compressed axially.</div>
       </div>
     </div>
 
@@ -108,13 +127,13 @@
       <h3>Stent dimensions <span class="tog">&minus;</span></h3>
       <div class="sb">
         <div class="r2">
-          <div class="sg"><div class="sl"><span>Diam. start</span><span class="v" id="od1-val">3.0 mm</span></div><input type="range" id="od1-slider" min="1.5" max="6.0" value="3.0" step="0.1"></div>
-          <div class="sg"><div class="sl"><span>Diam. end</span><span class="v" id="od2-val">3.0 mm</span></div><input type="range" id="od2-slider" min="1.5" max="6.0" value="3.0" step="0.1"></div>
+          <div class="sg"><div class="sl"><span>Diam. start</span><span class="v" id="od1-val">3.0</span></div><input type="range" id="od1-slider" min="1.5" max="6.0" value="3.0" step="0.1"></div>
+          <div class="sg"><div class="sl"><span>Diam. end</span><span class="v" id="od2-val">3.0</span></div><input type="range" id="od2-slider" min="1.5" max="6.0" value="3.0" step="0.1"></div>
         </div>
-        <div class="sg"><div class="sl"><span>Length</span><span class="v" id="len-val">15.0 mm</span></div><input type="range" id="len-slider" min="5" max="30" value="15" step="0.5"></div>
+        <div class="sg"><div class="sl"><span>Length</span><span class="v" id="len-val">15.0</span></div><input type="range" id="len-slider" min="5" max="30" value="15" step="0.5"></div>
         <div class="r2">
-          <div class="sg"><div class="sl"><span>Strut width</span><span class="v" id="sw-val">0.20 mm</span></div><input type="range" id="sw-slider" min="0.10" max="0.40" value="0.20" step="0.01"></div>
-          <div class="sg"><div class="sl"><span>Strut depth</span><span class="v" id="sd-val">0.20 mm</span></div><input type="range" id="sd-slider" min="0.10" max="0.40" value="0.20" step="0.01"></div>
+          <div class="sg"><div class="sl"><span>Strut width</span><span class="v" id="sw-val">0.20</span></div><input type="range" id="sw-slider" min="0.10" max="0.40" value="0.20" step="0.01"></div>
+          <div class="sg"><div class="sl"><span>Strut depth</span><span class="v" id="sd-val">0.20</span></div><input type="range" id="sd-slider" min="0.10" max="0.40" value="0.20" step="0.01"></div>
         </div>
       </div>
     </div>
@@ -122,18 +141,11 @@
     <div class="ps" id="sec-cell">
       <h3>Auxetic cell <span class="tog">&minus;</span></h3>
       <div class="sb">
-        <div class="sg">
-          <div class="sl"><span>Cell topology</span></div>
-          <select id="cell-type">
-            <option value="reentrant" selected>Re-entrant honeycomb</option>
-            <option value="arrowhead">Double arrowhead</option>
-            <option value="antichiral">Anti-tetrachiral</option>
-            <option value="star">Star honeycomb</option>
-          </select>
-        </div>
+        <div class="sg"><div class="sl"><span>Cell topology</span></div>
+          <select id="cell-type"><option value="reentrant" selected>Re-entrant honeycomb</option><option value="arrowhead">Double arrowhead</option><option value="antichiral">Anti-tetrachiral</option><option value="star">Star honeycomb</option></select></div>
         <div class="r2">
-          <div class="sg"><div class="sl"><span>H (vert rib)</span><span class="v" id="h-val">0.60 mm</span></div><input type="range" id="h-slider" min="0.20" max="1.20" value="0.60" step="0.02"></div>
-          <div class="sg"><div class="sl"><span>L (diag rib)</span><span class="v" id="l-val">0.50 mm</span></div><input type="range" id="l-slider" min="0.20" max="1.00" value="0.50" step="0.02"></div>
+          <div class="sg"><div class="sl"><span>H (vert rib)</span><span class="v" id="h-val">0.60</span></div><input type="range" id="h-slider" min="0.20" max="1.20" value="0.60" step="0.02"></div>
+          <div class="sg"><div class="sl"><span>L (diag rib)</span><span class="v" id="l-val">0.50</span></div><input type="range" id="l-slider" min="0.20" max="1.00" value="0.50" step="0.02"></div>
         </div>
         <div class="sg"><div class="sl"><span>Re-entrant angle (&theta;)</span><span class="v" id="angle-val">-25°</span></div><input type="range" id="angle-slider" min="15" max="40" value="25" step="1"></div>
         <div class="r2">
@@ -143,13 +155,33 @@
       </div>
     </div>
 
-    <div class="ps" id="sec-export">
-      <h3>Export STL <span class="tog">&minus;</span></h3>
+    <div class="ps closed" id="sec-compare">
+      <h3>Compare <span class="tog">+</span></h3>
       <div class="sb">
-        <div class="ic" style="font-size:10px;line-height:1.5">Downloads the stent <strong>exactly as displayed</strong> — including any active deformation (crimp, bend, flex, taper). Watertight SDF + marching cubes.</div>
-        <div class="sg"><div class="sl"><span>Voxel resolution</span><span class="v" id="vox-val">0.040 mm</span></div><input type="range" id="vox-slider" min="20" max="80" value="40" step="2"></div>
+        <div class="ic" style="font-size:10px">Snapshot the current config into viewport B, then change params to compare side-by-side.</div>
+        <div class="btn-row"><button class="bw" id="cmp-snap">&#128247; Snapshot to B</button><button class="br" id="cmp-toggle">Split view</button></div>
+      </div>
+    </div>
+
+    <div class="ps closed" id="sec-presets">
+      <h3>Presets &amp; config <span class="tog">+</span></h3>
+      <div class="sb">
+        <div class="r2">
+          <input type="text" id="preset-name" placeholder="Preset name...">
+          <button class="bd" id="preset-save" style="padding:9px">&#10010; Save</button>
+        </div>
+        <div class="preset-list" id="preset-list"></div>
+        <div class="btn-row"><button class="br" id="json-export">&#8599; Export JSON</button><button class="br" id="json-import-btn">&#8601; Import JSON</button></div>
+        <input type="file" id="json-import" accept=".json" class="hidden-input">
+      </div>
+    </div>
+
+    <div class="ps" id="sec-export">
+      <h3>Export <span class="tog">&minus;</span></h3>
+      <div class="sb">
+        <div class="sg"><div class="sl"><span>Voxel resolution</span><span class="v" id="vox-val">0.040</span></div><input type="range" id="vox-slider" min="20" max="80" value="40" step="2"></div>
         <div class="prog" id="dl-progress"><div class="bar" id="dl-bar"></div></div>
-        <button class="bd" id="dl-btn">&#11015; Generate &amp; download STL</button>
+        <div class="btn-row"><button class="bd" id="dl-btn">&#11015; Download STL</button><button class="bd" id="pdf-btn">&#128196; PDF spec</button></div>
       </div>
     </div>
 
@@ -161,120 +193,56 @@
   </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 (function(){
-const canvas=document.getElementById('canvas3d');
-const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));renderer.setClearColor(0x0a0b0d);
-const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(35,1,.1,200);
-camera.position.set(6,4,8);camera.lookAt(0,0,0);
-scene.add(new THREE.AmbientLight(0xffffff,.35));
-const d1=new THREE.DirectionalLight(0xffffff,.7);d1.position.set(5,8,6);scene.add(d1);
-const d2=new THREE.DirectionalLight(0x5dcaa5,.3);d2.position.set(-4,-2,-5);scene.add(d2);
+const $=id=>document.getElementById(id);
+const P={OD1:3,OD2:3,length:15,H:.6,L:.5,thetaDeg:-25,nCirc:10,nAxial:14,strutW:.2,strutD:.2,cellType:'reentrant'};
+let mode='crimp',deformT=0,animSpeed=1,playing=false,lastSC=0;
 
-let orbitTheta=.7,orbitPhi=.5,orbitDist=18,isDrag=false,lx=0,ly=0,lpd=0;
-canvas.addEventListener('mousedown',e=>{isDrag=true;lx=e.clientX;ly=e.clientY});
+// ─── Dual renderer setup ───
+function makeScene(canvasId){
+  const canvas=$(canvasId);
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,preserveDrawingBuffer:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));renderer.setClearColor(0x0a0b0d);
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(35,1,.1,200);
+  camera.position.set(6,4,8);camera.lookAt(0,0,0);
+  scene.add(new THREE.AmbientLight(0xffffff,.35));
+  const d1=new THREE.DirectionalLight(0xffffff,.7);d1.position.set(5,8,6);scene.add(d1);
+  const d2=new THREE.DirectionalLight(0x5dcaa5,.3);d2.position.set(-4,-2,-5);scene.add(d2);
+  let group=new THREE.Group();scene.add(group);
+  return{canvas,renderer,scene,camera,group};
+}
+const scA=makeScene('c3d-a');
+const scB=makeScene('c3d-b');
+let compareMode=false;
+
+// Orbit (shared)
+let oT=.7,oP=.5,oD=18,isDrag=false,lx=0,ly=0,lpd=0;
+function attachOrbit(cv){
+  cv.addEventListener('mousedown',e=>{isDrag=true;lx=e.clientX;ly=e.clientY});
+  cv.addEventListener('mousemove',e=>{if(!isDrag)return;oT-=(e.clientX-lx)*.008;oP=Math.max(.1,Math.min(Math.PI-.1,oP-(e.clientY-ly)*.008));lx=e.clientX;ly=e.clientY});
+  cv.addEventListener('wheel',e=>{oD=Math.max(3,Math.min(50,oD+e.deltaY*.01));e.preventDefault()},{passive:false});
+  cv.addEventListener('touchstart',e=>{if(e.touches.length===1){isDrag=true;lx=e.touches[0].clientX;ly=e.touches[0].clientY}else if(e.touches.length===2){isDrag=false;const a=e.touches[0].clientX-e.touches[1].clientX,b=e.touches[0].clientY-e.touches[1].clientY;lpd=Math.sqrt(a*a+b*b)}});
+  cv.addEventListener('touchmove',e=>{if(e.touches.length===1&&isDrag){oT-=(e.touches[0].clientX-lx)*.008;oP=Math.max(.1,Math.min(Math.PI-.1,oP-(e.touches[0].clientY-ly)*.008));lx=e.touches[0].clientX;ly=e.touches[0].clientY}else if(e.touches.length===2){const a=e.touches[0].clientX-e.touches[1].clientX,b=e.touches[0].clientY-e.touches[1].clientY,d=Math.sqrt(a*a+b*b);if(lpd>0)oD=Math.max(3,Math.min(50,oD*(lpd/d)));lpd=d}e.preventDefault()},{passive:false});
+  cv.addEventListener('touchend',e=>{isDrag=false;if(e.touches.length<2)lpd=0});
+}
+attachOrbit(scA.canvas);attachOrbit(scB.canvas);
 window.addEventListener('mouseup',()=>isDrag=false);
-canvas.addEventListener('mousemove',e=>{if(!isDrag)return;orbitTheta-=(e.clientX-lx)*.008;orbitPhi=Math.max(.1,Math.min(Math.PI-.1,orbitPhi-(e.clientY-ly)*.008));lx=e.clientX;ly=e.clientY});
-canvas.addEventListener('wheel',e=>{orbitDist=Math.max(3,Math.min(50,orbitDist+e.deltaY*.01));e.preventDefault()},{passive:false});
-canvas.addEventListener('touchstart',e=>{if(e.touches.length===1){isDrag=true;lx=e.touches[0].clientX;ly=e.touches[0].clientY}else if(e.touches.length===2){isDrag=false;const a=e.touches[0].clientX-e.touches[1].clientX,b=e.touches[0].clientY-e.touches[1].clientY;lpd=Math.sqrt(a*a+b*b)}});
-canvas.addEventListener('touchmove',e=>{if(e.touches.length===1&&isDrag){orbitTheta-=(e.touches[0].clientX-lx)*.008;orbitPhi=Math.max(.1,Math.min(Math.PI-.1,orbitPhi-(e.touches[0].clientY-ly)*.008));lx=e.touches[0].clientX;ly=e.touches[0].clientY}else if(e.touches.length===2){const a=e.touches[0].clientX-e.touches[1].clientX,b=e.touches[0].clientY-e.touches[1].clientY,d=Math.sqrt(a*a+b*b);if(lpd>0)orbitDist=Math.max(3,Math.min(50,orbitDist*(lpd/d)));lpd=d}e.preventDefault()},{passive:false});
-canvas.addEventListener('touchend',e=>{isDrag=false;if(e.touches.length<2)lpd=0});
-if('ontouchstart'in window){const h=document.getElementById('interact-hint');if(h)h.textContent='swipe to orbit \u00b7 pinch to zoom'}
+if('ontouchstart'in window){const h=$('interact-hint');if(h)h.textContent='swipe to orbit \u00b7 pinch to zoom'}
+
+// Collapsible
 document.querySelectorAll('.ps h3').forEach(h=>{h.addEventListener('click',()=>{const s=h.closest('.ps');s.classList.toggle('closed');h.querySelector('.tog').textContent=s.classList.contains('closed')?'+':'\u2212'})});
 
-const P={OD1:3,OD2:3,length:15,H:.6,L:.5,thetaDeg:-25,nCirc:10,nAxial:14,strutW:.2,strutD:.2,cellType:'reentrant'};
-let mode='crimp',deformT=0,animSpeed=1,playing=false,stentGroup=null,lastSC=0;
+// Materials
 const sM=new THREE.MeshStandardMaterial({color:0x5dcaa5,metalness:.4,roughness:.5});
 const hM=new THREE.MeshStandardMaterial({color:0x85b7eb,metalness:.4,roughness:.5});
-const $=id=>document.getElementById(id);
 
-// ─── Shared: generate 2D segments + dedup + map to 3D with deformation ───
-function genSegments3D(applyDeform){
-  const{OD1,OD2,length,H,L,thetaDeg,nCirc,nAxial,strutW,strutD}=P;
-  const sR=strutW/2;
-  const{uniq,tc,ta}=gen2DLattice();
-  const hl=length/2;
-
-  // Deformation params
-  const t=applyDeform?deformT:0;
-  let bend=0,flex=0,axS=1;
-  let crimpF=0,expandF=0;
-  if(applyDeform){
-    if(mode==='crimp')crimpF=t;
-    else if(mode==='expand')expandF=t;
-    else if(mode==='bend')bend=t;
-    else if(mode==='flex')flex=t;
-  }
-  if(crimpF>0)axS=1-crimpF*.25;
-  if(expandF>0)axS=1+expandF*.15;
-
-  // Map to 3D with taper + deformation
-  function radiusAt(y){
-    // y is axial position, ta/2 = half total axial extent
-    const frac=(y+ta/2)/ta; // 0 at bottom, 1 at top
-    const R1=OD1/2, R2=OD2/2;
-    let R=R1+(R2-R1)*Math.max(0,Math.min(1,frac));
-    if(crimpF>0) R*=(1-crimpF*.5);
-    if(expandF>0) R*=(1+expandF*.33);
-    return R;
-  }
-
-  function m2c(x,y,tc2){
-    const a=(x/tc2)*Math.PI*2;
-    const Rm=radiusAt(y)-strutD/2;
-    return {x:Rm*Math.cos(a), y:y*axS, z:Rm*Math.sin(a)};
-  }
-
-  function applyBendFlex(pt){
-    if(bend>0){
-      const kappa=bend*0.08;
-      const s=pt.y;
-      if(kappa*Math.abs(s)>1e-6){
-        pt.y=Math.sin(kappa*s)/kappa;
-        pt.x+=(1-Math.cos(kappa*s))/kappa;
-      }
-    }
-    if(flex>0){
-      const nY=pt.y/(hl*axS||1);
-      pt.x+=Math.sin(nY*Math.PI*2)*flex*.8;
-      pt.z+=Math.cos(nY*Math.PI*2.5+.5)*flex*.3;
-    }
-    return pt;
-  }
-
-  // Build 3D segments (subdivided for curvature)
-  const segs3d=[];
-  for(const seg of uniq){
-    for(let i=0;i<4;i++){
-      const f0=i/4,f1=(i+1)/4;
-      const px0=seg.s[0]*(1-f0)+seg.e[0]*f0, py0=seg.s[1]*(1-f0)+seg.e[1]*f0;
-      const px1=seg.s[0]*(1-f1)+seg.e[0]*f1, py1=seg.s[1]*(1-f1)+seg.e[1]*f1;
-      const p0=m2c(px0,py0,tc), p1=m2c(px1,py1,tc);
-      const pp0=applyBendFlex({x:p0.x,y:p0.y,z:p0.z});
-      const pp1=applyBendFlex({x:p1.x,y:p1.y,z:p1.z});
-      segs3d.push({p0:[pp0.x,pp0.y,pp0.z],p1:[pp1.x,pp1.y,pp1.z],r:sR});
-    }
-  }
-
-  return {segs3d, uniq, tc, hl, ta, radiusAt, sR, axS, bend, flex, crimpF, expandF};
-}
-
-// ─── Three.js preview ───
-function m2cV(x,y,R,tc){const a=(x/tc)*Math.PI*2;return new THREE.Vector3(R*Math.cos(a),y,R*Math.sin(a))}
-function mkT(p,r,m,s){if(p.length<2)return null;const c=new THREE.CatmullRomCurve3(p.map(v=>new THREE.Vector3(v.x,v.y,v.z)),false,'centripetal',0);return new THREE.Mesh(new THREE.TubeGeometry(c,Math.max(2,s||3),r,6,false),m)}
-
-function buildStent(){
-  if(stentGroup)scene.remove(stentGroup);stentGroup=new THREE.Group();
-  rebuildMeshes();scene.add(stentGroup);
-  orbitDist=Math.max(12,P.length*1.0+Math.max(P.OD1,P.OD2)*3);
-}
-
-// ─── Shared 2D lattice generator (used by both preview and STL) ───
-function gen2DLattice(){
-  const{H,L,thetaDeg,nCirc,nAxial,strutW,cellType}=P;
-  const aT=Math.abs(thetaDeg)*Math.PI/180;
-  const dx=L*Math.cos(aT),dy=L*Math.sin(aT);
+// ─── Shared 2D lattice generator ───
+function gen2DLattice(pp){
+  const{H,L,thetaDeg,nCirc,nAxial,strutW,cellType}=pp;
+  const aT=Math.abs(thetaDeg)*Math.PI/180,dx=L*Math.cos(aT),dy=L*Math.sin(aT);
   let cW,cH;
   if(cellType==='reentrant'){cW=2*dx;cH=H+2*dy}
   else if(cellType==='arrowhead'){cW=2*L*Math.sin(aT);cH=2*L*Math.cos(aT)+H}
@@ -289,250 +257,324 @@ function gen2DLattice(){
       s2.push({s:[xo,yo],e:[xo-dx,yo-dy],t:'d'});s2.push({s:[xo,yo],e:[xo+dx,yo-dy],t:'d'});
       s2.push({s:[xo,yo+H],e:[xo-dx,yo+H+dy],t:'d'});s2.push({s:[xo,yo+H],e:[xo+dx,yo+H+dy],t:'d'});
     }
-  } else if(cellType==='arrowhead'){
-    const aw=L*Math.sin(aT),ah=L*Math.cos(aT);
+  }else if(cellType==='arrowhead'){
+    const aw=L*Math.sin(aT);
     for(let r=0;r<nAxial;r++)for(let c=0;c<nCirc;c++){
       const xo=c*cW+cW/2,yo=r*cH-ta/2,yMid=yo+cH/2;
       s2.push({s:[xo,yo],e:[xo-aw,yMid],t:'d'});s2.push({s:[xo,yo],e:[xo+aw,yMid],t:'d'});
       s2.push({s:[xo,yo+cH],e:[xo-aw,yMid],t:'d'});s2.push({s:[xo,yo+cH],e:[xo+aw,yMid],t:'d'});
       s2.push({s:[xo-aw,yMid],e:[xo-cW/2,yMid],t:'v'});s2.push({s:[xo+aw,yMid],e:[xo+cW/2,yMid],t:'v'});
     }
-  } else if(cellType==='antichiral'){
-    const nodeR=H*0.25,nSeg=8;
+  }else if(cellType==='antichiral'){
+    const nodeR=H*.25,nS=8;
     for(let r=0;r<nAxial;r++)for(let c=0;c<nCirc;c++){
       const xo=c*cW+cW/2,yo=r*cH-ta/2+cH/2;
-      for(let i=0;i<nSeg;i++){const a1=i*Math.PI*2/nSeg,a2=(i+1)*Math.PI*2/nSeg;
-        s2.push({s:[xo+nodeR*Math.cos(a1),yo+nodeR*Math.sin(a1)],e:[xo+nodeR*Math.cos(a2),yo+nodeR*Math.sin(a2)],t:'v'});}
-      s2.push({s:[xo+nodeR,yo],e:[xo+cW-nodeR,yo],t:'d'});
-      s2.push({s:[xo,yo-nodeR],e:[xo+cW,yo+nodeR],t:'d'});
-      s2.push({s:[xo-nodeR,yo],e:[xo+nodeR,yo+cH],t:'d'});
+      for(let i=0;i<nS;i++){const a1=i*Math.PI*2/nS,a2=(i+1)*Math.PI*2/nS;s2.push({s:[xo+nodeR*Math.cos(a1),yo+nodeR*Math.sin(a1)],e:[xo+nodeR*Math.cos(a2),yo+nodeR*Math.sin(a2)],t:'v'})}
+      s2.push({s:[xo+nodeR,yo],e:[xo+cW-nodeR,yo],t:'d'});s2.push({s:[xo,yo-nodeR],e:[xo+cW,yo+nodeR],t:'d'});s2.push({s:[xo-nodeR,yo],e:[xo+nodeR,yo+cH],t:'d'});
     }
-  } else if(cellType==='star'){
-    const a=H*0.7,b=H;
+  }else if(cellType==='star'){
+    const a=H*.7,b=H;
     for(let r=0;r<nAxial;r++)for(let c=0;c<nCirc;c++){
       const xo=c*cW+cW/2,yo=r*cH-ta/2+cH/2;
-      const pts=[];for(let i=0;i<4;i++){const ang=Math.PI/4+i*Math.PI/2;pts.push([xo+a*Math.cos(ang),yo+a*Math.sin(ang)])}
+      const pts=[];for(let i=0;i<4;i++){const ag=Math.PI/4+i*Math.PI/2;pts.push([xo+a*Math.cos(ag),yo+a*Math.sin(ag)])}
       for(let i=0;i<4;i++)s2.push({s:pts[i],e:pts[(i+1)%4],t:'v'});
-      s2.push({s:pts[0],e:[xo,yo+b],t:'d'});s2.push({s:pts[1],e:[xo+b,yo],t:'d'});
-      s2.push({s:pts[2],e:[xo,yo-b],t:'d'});s2.push({s:pts[3],e:[xo-b,yo],t:'d'});
+      s2.push({s:pts[0],e:[xo,yo+b],t:'d'});s2.push({s:pts[1],e:[xo+b,yo],t:'d'});s2.push({s:pts[2],e:[xo,yo-b],t:'d'});s2.push({s:pts[3],e:[xo-b,yo],t:'d'});
     }
   }
-  // Dedup
-  const seen=new Set(),uniq=[];
-  const zB=P.length/2+L+strutW;
+  const seen=new Set(),uniq=[],zB=pp.length/2+L+strutW;
   for(const seg of s2){
     let sx=((seg.s[0]%tc)+tc)%tc,sy=seg.s[1],ex=((seg.e[0]%tc)+tc)%tc,ey=seg.e[1];
-    if(Math.abs(sx-ex)>tc*.4)continue;
+    if(Math.abs(sx-ex)>tc*.4||Math.abs(sx-ex)+Math.abs(sy-ey)<.001)continue;
     if(sy<-zB&&ey<-zB)continue;if(sy>zB&&ey>zB)continue;
-    if(Math.abs(sx-ex)+Math.abs(sy-ey)<.001)continue;
     const k=sx.toFixed(3)+','+sy.toFixed(3)+','+ex.toFixed(3)+','+ey.toFixed(3);
     const kr=ex.toFixed(3)+','+ey.toFixed(3)+','+sx.toFixed(3)+','+sy.toFixed(3);
     if(seen.has(k)||seen.has(kr))continue;seen.add(k);uniq.push({s:[sx,sy],e:[ex,ey],t:seg.t});
   }
-  return{uniq,tc,ta,cW,cH};
+  return{uniq,tc,ta};
 }
 
-function rebuildMeshes(){
-  while(stentGroup.children.length){const c=stentGroup.children[0];if(c.geometry)c.geometry.dispose();stentGroup.remove(c)}
-  const{OD1,OD2,length,H,L,thetaDeg,nCirc,nAxial,strutW,strutD}=P;
-  const sR=strutW/2;
-  const hl=length/2;
-  const{uniq,tc,ta}=gen2DLattice();
-  lastSC=uniq.length;
+function mkT(p,r,m,s){if(p.length<2)return null;const c=new THREE.CatmullRomCurve3(p.map(v=>new THREE.Vector3(v.x,v.y,v.z)),false,'centripetal',0);return new THREE.Mesh(new THREE.TubeGeometry(c,Math.max(2,s||3),r,6,false),m)}
 
-  const t=deformT;
+function buildMeshes(group,pp,md,dt){
+  while(group.children.length){const c=group.children[0];if(c.geometry)c.geometry.dispose();group.remove(c)}
+  const{OD1,OD2,length,strutW,strutD}=pp;
+  const sR=strutW/2,hl=length/2;
+  const{uniq,tc,ta}=gen2DLattice(pp);
+  if(group===scA.group)lastSC=uniq.length;
+  const t=dt;
   let bend=0,flex=0,axS=1,crimpF=0,expandF=0;
-  if(mode==='crimp'){crimpF=t;axS=1-t*.25}
-  else if(mode==='expand'){expandF=t;axS=1+t*.15}
-  else if(mode==='bend')bend=t;
-  else if(mode==='flex')flex=t;
-
-  function radAt(y){
-    const frac=(y+ta/2)/ta;
-    let R=(OD1/2)+((OD2-OD1)/2)*Math.max(0,Math.min(1,frac));
-    if(crimpF>0)R*=(1-crimpF*.5);if(expandF>0)R*=(1+expandF*.33);
-    return R;
-  }
-
+  if(md==='crimp'){crimpF=t;axS=1-t*.25}else if(md==='expand'){expandF=t;axS=1+t*.15}
+  else if(md==='bend')bend=t;else if(md==='flex')flex=t;
+  function radAt(y){const frac=(y+ta/2)/ta;let R=(OD1/2)+((OD2-OD1)/2)*Math.max(0,Math.min(1,frac));if(crimpF>0)R*=(1-crimpF*.5);if(expandF>0)R*=(1+expandF*.33);return R}
   for(const seg of uniq){
     const path=[];
-    for(let i=0;i<=4;i++){
-      const f=i/4;
-      const px=seg.s[0]*(1-f)+seg.e[0]*f, py=seg.s[1]*(1-f)+seg.e[1]*f;
-      const R=radAt(py)-strutD/2;
-      const a2=(px/tc)*Math.PI*2;
-      let pt={x:R*Math.cos(a2), y:py*axS, z:R*Math.sin(a2)};
-      if(bend>0){const kappa=bend*0.08,s=pt.y;if(kappa*Math.abs(s)>1e-6){pt.y=Math.sin(kappa*s)/kappa;pt.x+=(1-Math.cos(kappa*s))/kappa}}
+    for(let i=0;i<=4;i++){const f=i/4,px=seg.s[0]*(1-f)+seg.e[0]*f,py=seg.s[1]*(1-f)+seg.e[1]*f;
+      const R=radAt(py)-strutD/2;const a2=(px/tc)*Math.PI*2;
+      let pt={x:R*Math.cos(a2),y:py*axS,z:R*Math.sin(a2)};
+      if(bend>0){const kappa=bend*.08,s=pt.y;if(kappa*Math.abs(s)>1e-6){pt.y=Math.sin(kappa*s)/kappa;pt.x+=(1-Math.cos(kappa*s))/kappa}}
       if(flex>0){const nY=pt.y/(hl*axS||1);pt.x+=Math.sin(nY*Math.PI*2)*flex*.8;pt.z+=Math.cos(nY*Math.PI*2.5+.5)*flex*.3}
       path.push(pt);
     }
-    const mt=(t>.01&&(mode==='crimp'||mode==='expand')&&seg.t==='d'&&t>.5)?hM:sM;
-    const m=mkT(path,sR,mt,3);if(m)stentGroup.add(m);
+    const mt=(t>.01&&(md==='crimp'||md==='expand')&&seg.t==='d'&&t>.5)?hM:sM;
+    const m=mkT(path,sR,mt,3);if(m)group.add(m);
   }
 }
 
-// ─── UI ───
-const infoT={crimp:'<strong>Crimping</strong> — Negative Poisson\'s ratio contracts laterally when compressed axially. <span class="hl">50%</span> diameter reduction.',expand:'<strong>Expansion</strong> — Self-expands with axial elongation. No foreshortening.',bend:'<strong>Bending</strong> — Conforms to vessel curvature with non-uniform cell deformation.',flex:'<strong>Flex</strong> — Pulsatile loading distributed evenly by the auxetic lattice.'};
+function buildStent(){buildMeshes(scA.group,P,mode,deformT);oD=Math.max(12,P.length+Math.max(P.OD1,P.OD2)*3)}
+function rebuildMeshes(){buildMeshes(scA.group,P,mode,deformT)}
+
+// ─── Comparison snapshot ───
+let snapParams=null,snapMode='crimp',snapDT=0;
+$('cmp-snap').addEventListener('click',()=>{
+  snapParams=JSON.parse(JSON.stringify(P));snapMode=mode;snapDT=deformT;
+  buildMeshes(scB.group,snapParams,snapMode,snapDT);
+  $('cmp-info').textContent=snapParams.cellType+' '+snapParams.OD1.toFixed(1)+'mm';
+  if(!compareMode)$('cmp-toggle').click();
+});
+$('cmp-toggle').addEventListener('click',()=>{
+  compareMode=!compareMode;
+  $('app').classList.toggle('compare-mode',compareMode);
+  $('cmp-toggle').textContent=compareMode?'Single view':'Split view';
+  setTimeout(resize,50);
+});
+
+// ─── UI wiring ───
+const infoT={crimp:'<strong>Crimping</strong> — Negative Poisson\'s ratio contracts laterally when compressed axially.',expand:'<strong>Expansion</strong> — Self-expands with axial elongation. No foreshortening.',bend:'<strong>Bending</strong> — Conforms to vessel curvature.',flex:'<strong>Flex</strong> — Pulsatile loading distributed evenly.'};
 document.querySelectorAll('.mb').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.mb').forEach(x=>x.classList.remove('active'));b.classList.add('active');mode=b.dataset.mode;$('info-card').innerHTML=infoT[mode];if(!playing)rebuildMeshes()}));
 $('deform-slider').addEventListener('input',()=>{deformT=+$('deform-slider').value/100;$('deform-val').textContent=Math.round(deformT*100)+'%';playing=false;$('play-btn').innerHTML='&#9654; Play';rebuildMeshes();updateStats()});
 $('speed-slider').addEventListener('input',()=>{animSpeed=+$('speed-slider').value/10;$('speed-val').textContent=animSpeed.toFixed(1)+'x'});
 $('play-btn').addEventListener('click',()=>{playing=!playing;$('play-btn').innerHTML=playing?'&#9646;&#9646; Pause':'&#9654; Play'});
-
-// Reset
-$('reset-btn').addEventListener('click',()=>{
-  mode='crimp';deformT=0;playing=false;animSpeed=1;
-  document.querySelectorAll('.mb').forEach(b=>b.classList.toggle('active',b.dataset.mode==='crimp'));
-  $('deform-slider').value=0;$('deform-val').textContent='0%';
-  $('speed-slider').value=10;$('speed-val').textContent='1.0x';
-  $('play-btn').innerHTML='&#9654; Play';
-  $('info-card').innerHTML=infoT.crimp;
-  rebuildMeshes();updateStats();
-});
+$('reset-btn').addEventListener('click',()=>{mode='crimp';deformT=0;playing=false;animSpeed=1;document.querySelectorAll('.mb').forEach(b=>b.classList.toggle('active',b.dataset.mode==='crimp'));$('deform-slider').value=0;$('deform-val').textContent='0%';$('speed-slider').value=10;$('speed-val').textContent='1.0x';$('play-btn').innerHTML='&#9654; Play';$('info-card').innerHTML=infoT.crimp;rebuildMeshes();updateStats()});
 
 function wireS(sid,vid,pk,fmt){$(sid).addEventListener('input',()=>{const v=+($(sid).value);P[pk]=pk==='thetaDeg'?-v:v;$(vid).textContent=fmt(pk==='thetaDeg'?-v:v);buildStent();updateStats()})}
-const mm=v=>v.toFixed(2)+' mm',mm1=v=>v.toFixed(1)+' mm',dg=v=>v+'°',it=v=>''+v;
-wireS('od1-slider','od1-val','OD1',mm1);wireS('od2-slider','od2-val','OD2',mm1);
-wireS('len-slider','len-val','length',mm1);wireS('sw-slider','sw-val','strutW',mm);wireS('sd-slider','sd-val','strutD',mm);
-wireS('h-slider','h-val','H',mm);wireS('l-slider','l-val','L',mm);
-wireS('angle-slider','angle-val','thetaDeg',dg);wireS('ncirc-slider','ncirc-val','nCirc',it);
-wireS('naxial-slider','naxial-val','nAxial',it);
-$('cell-type').addEventListener('change',()=>{P.cellType=$('cell-type').value;buildStent();updateStats()});
-$('vox-slider').addEventListener('input',()=>{$('vox-val').textContent=(+$('vox-slider').value/1000).toFixed(3)+' mm'});
+const mm=v=>v.toFixed(2),mm1=v=>v.toFixed(1),dg=v=>v+'°',it=v=>''+v;
+wireS('od1-slider','od1-val','OD1',mm1);wireS('od2-slider','od2-val','OD2',mm1);wireS('len-slider','len-val','length',mm1);
+wireS('sw-slider','sw-val','strutW',mm);wireS('sd-slider','sd-val','strutD',mm);wireS('h-slider','h-val','H',mm);wireS('l-slider','l-val','L',mm);
+wireS('angle-slider','angle-val','thetaDeg',dg);wireS('ncirc-slider','ncirc-val','nCirc',it);wireS('naxial-slider','naxial-val','nAxial',it);
+$('cell-type').addEventListener('change',()=>{P.cellType=$('cell-type').value;$('tag-cell').textContent=$('cell-type').selectedOptions[0].text;buildStent();updateStats()});
+$('vox-slider').addEventListener('input',()=>{$('vox-val').textContent=(+$('vox-slider').value/1000).toFixed(3)});
 
 function updateStats(){
-  const aT=Math.abs(P.thetaDeg)*Math.PI/180;
-  const avgOD=(P.OD1+P.OD2)/2;
+  const aT=Math.abs(P.thetaDeg)*Math.PI/180,avgOD=(P.OD1+P.OD2)/2;
   let d=avgOD;if(mode==='crimp')d=avgOD*(1-deformT*.5);else if(mode==='expand')d=avgOD*(1+deformT*.33);
-  $('diam-val').textContent=d.toFixed(2)+' mm';
+  $('diam-val').textContent=d.toFixed(2);
   const sT=Math.sin(aT),cT=Math.cos(aT),nu=-(cT*(P.H/P.L+sT))/(sT*sT);
-  $('nu-val').textContent=nu.toFixed(2);$('theta-val').textContent=P.thetaDeg.toFixed(1)+'°';
-  $('strut-count').textContent=lastSC;
-  const dimStr=P.OD1===P.OD2?P.OD1.toFixed(1)+' x '+P.length.toFixed(1)+' mm':P.OD1.toFixed(1)+'\u2192'+P.OD2.toFixed(1)+' x '+P.length.toFixed(1)+' mm';
-  $('tag-dims').textContent=dimStr;
+  $('nu-val').textContent=nu.toFixed(2);$('theta-val').textContent=P.thetaDeg.toFixed(0)+'°';$('strut-count').textContent=lastSC;
+  $('tag-dims').textContent=(P.OD1===P.OD2?P.OD1.toFixed(1):P.OD1.toFixed(1)+'\u2192'+P.OD2.toFixed(1))+' \u00d7 '+P.length.toFixed(1)+' mm';
 }
 
-// ─── STL GENERATION ───
+// ─── Presets (localStorage) ───
+const STORE_KEY='auxetic_stent_presets';
+function loadPresets(){try{return JSON.parse(localStorage.getItem(STORE_KEY))||[]}catch(e){return[]}}
+function savePresets(list){try{localStorage.setItem(STORE_KEY,JSON.stringify(list))}catch(e){}}
+function renderPresets(){
+  const list=loadPresets(),el=$('preset-list');el.innerHTML='';
+  if(!list.length){el.innerHTML='<div style="font-size:10px;color:var(--text-dim);opacity:.5;padding:4px">No saved presets</div>';return}
+  list.forEach((p,i)=>{
+    const d=document.createElement('div');d.className='preset-item';
+    d.innerHTML='<span class="pi-name">'+p.name+'</span><span class="pi-del">&times;</span>';
+    d.querySelector('.pi-name').addEventListener('click',()=>{applyConfig(p.config);renderPresets()});
+    d.querySelector('.pi-del').addEventListener('click',e=>{e.stopPropagation();const l=loadPresets();l.splice(i,1);savePresets(l);renderPresets()});
+    el.appendChild(d);
+  });
+}
+$('preset-save').addEventListener('click',()=>{
+  const name=$('preset-name').value.trim()||'Preset '+(loadPresets().length+1);
+  const list=loadPresets();list.push({name,config:JSON.parse(JSON.stringify(P))});savePresets(list);$('preset-name').value='';renderPresets();
+});
+function applyConfig(cfg){
+  Object.assign(P,cfg);
+  $('od1-slider').value=P.OD1;$('od1-val').textContent=P.OD1.toFixed(1);
+  $('od2-slider').value=P.OD2;$('od2-val').textContent=P.OD2.toFixed(1);
+  $('len-slider').value=P.length;$('len-val').textContent=P.length.toFixed(1);
+  $('sw-slider').value=P.strutW;$('sw-val').textContent=P.strutW.toFixed(2);
+  $('sd-slider').value=P.strutD;$('sd-val').textContent=P.strutD.toFixed(2);
+  $('h-slider').value=P.H;$('h-val').textContent=P.H.toFixed(2);
+  $('l-slider').value=P.L;$('l-val').textContent=P.L.toFixed(2);
+  $('angle-slider').value=Math.abs(P.thetaDeg);$('angle-val').textContent=P.thetaDeg+'°';
+  $('ncirc-slider').value=P.nCirc;$('ncirc-val').textContent=P.nCirc;
+  $('naxial-slider').value=P.nAxial;$('naxial-val').textContent=P.nAxial;
+  $('cell-type').value=P.cellType||'reentrant';$('tag-cell').textContent=$('cell-type').selectedOptions[0].text;
+  buildStent();updateStats();
+}
+// JSON export/import
+$('json-export').addEventListener('click',()=>{
+  const blob=new Blob([JSON.stringify(P,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='stent_config.json';a.click();URL.revokeObjectURL(a.href);
+});
+$('json-import-btn').addEventListener('click',()=>$('json-import').click());
+$('json-import').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();r.onload=ev=>{try{const cfg=JSON.parse(ev.target.result);applyConfig(cfg)}catch(err){alert('Invalid JSON')}};r.readAsText(f);e.target.value='';
+});
+renderPresets();
+
+// ─── PDF Spec Sheet ───
+$('pdf-btn').addEventListener('click',()=>{
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const W=210,M=15;let y=M;
+  scA.renderer.render(scA.scene,scA.camera);
+  const imgData=scA.canvas.toDataURL('image/png');
+  // Header
+  doc.setFontSize(18);doc.setFont('helvetica','bold');doc.text('Auxetic Stent - Spec Sheet',M,y);y+=8;
+  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(120);doc.text('Generated '+new Date().toISOString().slice(0,16).replace('T',' '),M,y);y+=10;
+  // Image
+  const imgW=W-2*M,imgH=imgW*0.5;
+  doc.addImage(imgData,'PNG',M,y,imgW,imgH);y+=imgH+8;
+  // Geometry params
+  doc.setTextColor(0);doc.setFontSize(12);doc.setFont('helvetica','bold');doc.text('GEOMETRY PARAMETERS',M,y);y+=7;
+  doc.setFontSize(9);doc.setFont('helvetica','normal');
+  const LX=M,VX=M+72;
+  const rows=[
+    ['Cell topology',{reentrant:'Re-entrant honeycomb',arrowhead:'Double arrowhead',antichiral:'Anti-tetrachiral',star:'Star honeycomb'}[P.cellType]],
+    ['Outer diameter (start)',P.OD1.toFixed(2)+' mm'],
+    ['Outer diameter (end)',P.OD2.toFixed(2)+' mm'],
+    ['Length',P.length.toFixed(1)+' mm'],
+    ['Strut width',P.strutW.toFixed(2)+' mm'],
+    ['Strut depth',P.strutD.toFixed(2)+' mm'],
+    ['H (vertical rib)',P.H.toFixed(2)+' mm'],
+    ['L (diagonal rib)',P.L.toFixed(2)+' mm'],
+    ['Re-entrant angle (theta)',P.thetaDeg+' deg'],
+    ['Cells (circumferential)',''+P.nCirc],
+    ['Cells (axial)',''+P.nAxial],
+  ];
+  rows.forEach(([label,val])=>{
+    doc.setFont('helvetica','normal');doc.setTextColor(100);doc.text(label,LX,y);
+    doc.setFont('helvetica','bold');doc.setTextColor(30);doc.text(val,VX,y);y+=5.5;
+  });
+  y+=5;
+  // Mechanical props
+  doc.setFontSize(12);doc.setFont('helvetica','bold');doc.setTextColor(0);doc.text('MECHANICAL PROPERTIES',M,y);y+=7;
+  doc.setFontSize(9);
+  const aT=Math.abs(P.thetaDeg)*Math.PI/180,sT=Math.sin(aT),cT=Math.cos(aT);
+  const nu=-(cT*(P.H/P.L+sT))/(sT*sT);
+  const taperStr=P.OD1===P.OD2?'None (uniform)':P.OD1.toFixed(1)+' -> '+P.OD2.toFixed(1)+' mm';
+  const mRows=[
+    ["Poisson's ratio (nu)",nu.toFixed(3)],
+    ['Strut count (unique)',''+lastSC],
+    ['Taper',taperStr],
+    ['Current deformation',mode+' '+Math.round(deformT*100)+'%'],
+  ];
+  mRows.forEach(([label,val])=>{
+    doc.setFont('helvetica','normal');doc.setTextColor(100);doc.text(label,LX,y);
+    doc.setFont('helvetica','bold');doc.setTextColor(30);doc.text(val,VX,y);y+=5.5;
+  });
+  y+=5;
+  // AM notes
+  doc.setFontSize(12);doc.setFont('helvetica','bold');doc.setTextColor(0);doc.text('AM PRINTABILITY NOTES',M,y);y+=7;
+  doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(80);
+  const ribOk=Math.abs(P.thetaDeg)<=45;
+  const notes=[
+    'Min feature size: 0.150 mm (LPBF)',
+    'Min gap between features: 0.150 mm',
+    'Max overhang angle: 45 deg from build axis',
+    'Rib angle from vertical: '+Math.abs(P.thetaDeg)+' deg - '+(ribOk?'OK, self-supporting':'WARNING, needs support'),
+    'Post-process removal: ~0.025-0.050 mm/side',
+    'Post-processed strut: '+(P.strutW-0.07).toFixed(2)+'-'+(P.strutW-0.05).toFixed(2)+' mm',
+  ];
+  notes.forEach(n=>{doc.text('  - '+n,M,y);y+=4.5});
+  doc.save('stent_spec_'+P.OD1.toFixed(1)+'x'+P.length.toFixed(0)+'mm.pdf');
+});
+
+// ─── STL Generation (reuse from before — SDF + MC) ───
 const TRI_TABLE=[[-1],[0,8,3,-1],[0,1,9,-1],[1,8,3,9,8,1,-1],[1,2,10,-1],[0,8,3,1,2,10,-1],[9,2,10,0,2,9,-1],[2,8,3,2,10,8,10,9,8,-1],[3,11,2,-1],[0,11,2,8,11,0,-1],[1,9,0,2,3,11,-1],[1,11,2,1,9,11,9,8,11,-1],[3,10,1,11,10,3,-1],[0,10,1,0,8,10,8,11,10,-1],[3,9,0,3,11,9,11,10,9,-1],[9,8,10,10,8,11,-1],[4,7,8,-1],[4,3,0,7,3,4,-1],[0,1,9,8,4,7,-1],[4,1,9,4,7,1,7,3,1,-1],[1,2,10,8,4,7,-1],[3,4,7,3,0,4,1,2,10,-1],[9,2,10,9,0,2,8,4,7,-1],[2,10,9,2,9,7,2,7,3,7,9,4,-1],[8,4,7,3,11,2,-1],[11,4,7,11,2,4,2,0,4,-1],[9,0,1,8,4,7,2,3,11,-1],[4,7,11,9,4,11,9,11,2,9,2,1,-1],[3,10,1,3,11,10,7,8,4,-1],[1,11,10,1,4,11,1,0,4,7,11,4,-1],[4,7,8,9,0,11,9,11,10,11,0,3,-1],[4,7,11,4,11,9,9,11,10,-1],[9,5,4,-1],[9,5,4,0,8,3,-1],[0,5,4,1,5,0,-1],[8,5,4,8,3,5,3,1,5,-1],[1,2,10,9,5,4,-1],[3,0,8,1,2,10,4,9,5,-1],[5,2,10,5,4,2,4,0,2,-1],[2,10,5,3,2,5,3,5,4,3,4,8,-1],[9,5,4,2,3,11,-1],[0,11,2,0,8,11,4,9,5,-1],[0,5,4,0,1,5,2,3,11,-1],[2,1,5,2,5,8,2,8,11,4,8,5,-1],[10,3,11,10,1,3,9,5,4,-1],[4,9,5,0,8,1,8,10,1,8,11,10,-1],[5,4,0,5,0,11,5,11,10,11,0,3,-1],[5,4,8,5,8,10,10,8,11,-1],[9,7,8,5,7,9,-1],[9,3,0,9,5,3,5,7,3,-1],[0,7,8,0,1,7,1,5,7,-1],[1,5,3,3,5,7,-1],[9,7,8,9,5,7,10,1,2,-1],[10,1,2,9,5,0,5,3,0,5,7,3,-1],[8,0,2,8,2,5,8,5,7,10,5,2,-1],[2,10,5,2,5,3,3,5,7,-1],[7,9,5,7,8,9,3,11,2,-1],[9,5,7,9,7,2,9,2,0,2,7,11,-1],[2,3,11,0,1,8,1,7,8,1,5,7,-1],[11,2,1,11,1,7,7,1,5,-1],[9,5,8,8,5,7,10,1,3,10,3,11,-1],[5,7,0,5,0,9,7,11,0,1,0,10,11,10,0,-1],[11,10,0,11,0,3,10,5,0,8,0,7,5,7,0,-1],[11,10,5,7,11,5,-1],[10,6,5,-1],[0,8,3,5,10,6,-1],[9,0,1,5,10,6,-1],[1,8,3,1,9,8,5,10,6,-1],[1,6,5,2,6,1,-1],[1,6,5,1,2,6,3,0,8,-1],[9,6,5,9,0,6,0,2,6,-1],[5,9,8,5,8,2,5,2,6,3,2,8,-1],[2,3,11,10,6,5,-1],[11,0,8,11,2,0,10,6,5,-1],[0,1,9,2,3,11,5,10,6,-1],[5,10,6,1,9,2,9,11,2,9,8,11,-1],[6,3,11,6,5,3,5,1,3,-1],[0,8,11,0,11,5,0,5,1,5,11,6,-1],[3,11,6,0,3,6,0,6,5,0,5,9,-1],[6,5,9,6,9,11,11,9,8,-1],[5,10,6,4,7,8,-1],[4,3,0,4,7,3,6,5,10,-1],[1,9,0,5,10,6,8,4,7,-1],[10,6,5,1,9,7,1,7,3,7,9,4,-1],[6,1,2,6,5,1,4,7,8,-1],[1,2,5,5,2,6,3,0,4,3,4,7,-1],[8,4,7,9,0,5,0,6,5,0,2,6,-1],[7,3,9,7,9,4,3,2,9,5,9,6,2,6,9,-1],[3,11,2,7,8,4,10,6,5,-1],[5,10,6,4,7,2,4,2,0,2,7,11,-1],[0,1,9,4,7,8,2,3,11,5,10,6,-1],[9,2,1,9,11,2,9,4,11,7,11,4,5,10,6,-1],[8,4,7,3,11,5,3,5,1,5,11,6,-1],[5,1,11,5,11,6,1,0,11,7,11,4,0,4,11,-1],[0,5,9,0,6,5,0,3,6,11,6,3,8,4,7,-1],[6,5,9,6,9,11,4,7,9,7,11,9,-1],[10,4,9,6,4,10,-1],[4,10,6,4,9,10,0,8,3,-1],[10,0,1,10,6,0,6,4,0,-1],[8,3,1,8,1,6,8,6,4,6,1,10,-1],[1,4,9,1,2,4,2,6,4,-1],[3,0,8,1,2,9,2,4,9,2,6,4,-1],[0,2,4,4,2,6,-1],[8,3,2,8,2,4,4,2,6,-1],[10,4,9,10,6,4,11,2,3,-1],[0,8,2,2,8,11,4,9,10,4,10,6,-1],[3,11,2,0,1,6,0,6,4,6,1,10,-1],[6,4,1,6,1,10,4,8,1,2,1,11,8,11,1,-1],[9,6,4,9,3,6,9,1,3,11,6,3,-1],[8,11,1,8,1,0,11,6,1,9,1,4,6,4,1,-1],[3,11,6,3,6,0,0,6,4,-1],[6,4,8,11,6,8,-1],[7,10,6,7,8,10,8,9,10,-1],[0,7,3,0,10,7,0,9,10,6,7,10,-1],[10,6,7,1,10,7,1,7,8,1,8,0,-1],[10,6,7,10,7,1,1,7,3,-1],[1,2,6,1,6,8,1,8,9,8,6,7,-1],[2,6,9,2,9,1,6,7,9,0,9,3,7,3,9,-1],[7,8,0,7,0,6,6,0,2,-1],[7,3,2,6,7,2,-1],[2,3,11,10,6,8,10,8,9,8,6,7,-1],[2,0,7,2,7,11,0,9,7,6,7,10,9,10,7,-1],[1,8,0,1,7,8,1,10,7,6,7,10,2,3,11,-1],[11,2,1,11,1,7,10,6,1,6,7,1,-1],[8,9,6,8,6,7,9,1,6,11,6,3,1,3,6,-1],[0,9,1,11,6,7,-1],[7,8,0,7,0,6,3,11,0,11,6,0,-1],[7,11,6,-1],[7,6,11,-1],[3,0,8,11,7,6,-1],[0,1,9,11,7,6,-1],[8,1,9,8,3,1,11,7,6,-1],[10,1,2,6,11,7,-1],[1,2,10,3,0,8,6,11,7,-1],[2,9,0,2,10,9,6,11,7,-1],[6,11,7,2,10,3,10,8,3,10,9,8,-1],[7,2,3,6,2,7,-1],[7,0,8,7,6,0,6,2,0,-1],[2,7,6,2,3,7,0,1,9,-1],[1,6,2,1,8,6,1,9,8,8,7,6,-1],[10,7,6,10,1,7,1,3,7,-1],[10,7,6,1,7,10,1,8,7,1,0,8,-1],[0,3,7,0,7,10,0,10,9,6,10,7,-1],[7,6,10,7,10,8,8,10,9,-1],[6,8,4,11,8,6,-1],[3,6,11,3,0,6,0,4,6,-1],[8,6,11,8,4,6,9,0,1,-1],[9,4,6,9,6,3,9,3,1,11,3,6,-1],[6,8,4,6,11,8,2,10,1,-1],[1,2,10,3,0,11,0,6,11,0,4,6,-1],[4,11,8,4,6,11,0,2,9,2,10,9,-1],[10,9,3,10,3,2,9,4,3,11,3,6,4,6,3,-1],[8,2,3,8,4,2,4,6,2,-1],[0,4,2,4,6,2,-1],[1,9,0,2,3,4,2,4,6,4,3,8,-1],[1,9,4,1,4,2,2,4,6,-1],[8,1,3,8,6,1,8,4,6,6,10,1,-1],[10,1,0,10,0,6,6,0,4,-1],[4,6,3,4,3,8,6,10,3,0,3,9,10,9,3,-1],[10,9,4,6,10,4,-1],[4,9,5,7,6,11,-1],[0,8,3,4,9,5,11,7,6,-1],[5,0,1,5,4,0,7,6,11,-1],[11,7,6,8,3,4,3,5,4,3,1,5,-1],[9,5,4,10,1,2,7,6,11,-1],[6,11,7,1,2,10,0,8,3,4,9,5,-1],[7,6,11,5,4,10,4,2,10,4,0,2,-1],[3,4,8,3,5,4,3,2,5,10,5,2,11,7,6,-1],[7,2,3,7,6,2,5,4,9,-1],[9,5,4,0,8,6,0,6,2,6,8,7,-1],[3,6,2,3,7,6,1,5,0,5,4,0,-1],[6,2,8,6,8,7,2,1,8,4,8,5,1,5,8,-1],[9,5,4,10,1,6,1,7,6,1,3,7,-1],[1,6,10,1,7,6,1,0,7,8,7,0,9,5,4,-1],[4,0,10,4,10,5,0,3,10,6,10,7,3,7,10,-1],[7,6,10,7,10,8,5,4,10,4,8,10,-1],[6,9,5,6,11,9,11,8,9,-1],[3,6,11,0,6,3,0,5,6,0,9,5,-1],[0,11,8,0,5,11,0,1,5,5,6,11,-1],[6,11,3,6,3,5,5,3,1,-1],[1,2,10,9,5,11,9,11,8,11,5,6,-1],[0,11,3,0,6,11,0,9,6,5,6,9,1,2,10,-1],[11,8,5,11,5,6,8,0,5,10,5,2,0,2,5,-1],[6,11,3,6,3,5,2,10,3,10,5,3,-1],[5,8,9,5,2,8,5,6,2,3,8,2,-1],[9,5,6,9,6,0,0,6,2,-1],[1,5,8,1,8,0,5,6,8,3,8,2,6,2,8,-1],[1,5,6,2,1,6,-1],[1,3,6,1,6,10,3,8,6,5,6,9,8,9,6,-1],[10,1,0,10,0,6,9,5,0,5,6,0,-1],[0,3,8,5,6,10,-1],[10,5,6,-1],[11,5,10,7,5,11,-1],[11,5,10,11,7,5,8,3,0,-1],[5,11,7,5,10,11,1,9,0,-1],[10,7,5,10,11,7,9,8,1,8,3,1,-1],[11,1,2,11,7,1,7,5,1,-1],[0,8,3,1,2,7,1,7,5,7,2,11,-1],[9,7,5,9,2,7,9,0,2,2,11,7,-1],[7,5,2,7,2,11,5,9,2,3,2,8,9,8,2,-1],[2,5,10,2,3,5,3,7,5,-1],[8,2,0,8,5,2,8,7,5,10,2,5,-1],[9,0,1,5,10,3,5,3,7,3,10,2,-1],[9,8,2,9,2,1,8,7,2,10,2,5,7,5,2,-1],[1,3,5,3,7,5,-1],[0,8,7,0,7,1,1,7,5,-1],[9,0,3,9,3,5,5,3,7,-1],[9,8,7,5,9,7,-1],[5,8,4,5,10,8,10,11,8,-1],[5,0,4,5,11,0,5,10,11,11,3,0,-1],[0,1,9,8,4,10,8,10,11,10,4,5,-1],[10,11,4,10,4,5,11,3,4,9,4,1,3,1,4,-1],[2,5,1,2,8,5,2,11,8,4,5,8,-1],[0,4,11,0,11,3,4,5,11,2,11,1,5,1,11,-1],[0,2,5,0,5,9,2,11,5,4,5,8,11,8,5,-1],[9,4,5,2,11,3,-1],[2,5,10,3,5,2,3,4,5,3,8,4,-1],[5,10,2,5,2,4,4,2,0,-1],[3,10,2,3,5,10,3,8,5,4,5,8,0,1,9,-1],[5,10,2,5,2,4,1,9,2,9,4,2,-1],[8,4,5,8,5,3,3,5,1,-1],[0,4,5,1,0,5,-1],[8,4,5,8,5,3,9,0,5,0,3,5,-1],[9,4,5,-1],[4,11,7,4,9,11,9,10,11,-1],[0,8,3,4,9,7,9,11,7,9,10,11,-1],[1,10,11,1,11,4,1,4,0,7,4,11,-1],[3,1,4,3,4,8,1,10,4,7,4,11,10,11,4,-1],[4,11,7,9,11,4,9,2,11,9,1,2,-1],[9,7,4,9,11,7,9,1,11,2,11,1,0,8,3,-1],[11,7,4,11,4,2,2,4,0,-1],[11,7,4,11,4,2,8,3,4,3,2,4,-1],[2,9,10,2,7,9,2,3,7,7,4,9,-1],[9,10,7,9,7,4,10,2,7,8,7,0,2,0,7,-1],[3,7,10,3,10,2,7,4,10,1,10,0,4,0,10,-1],[1,10,2,8,7,4,-1],[4,9,1,4,1,7,7,1,3,-1],[4,9,1,4,1,7,0,8,1,8,7,1,-1],[4,0,3,7,4,3,-1],[4,8,7,-1],[9,10,8,10,11,8,-1],[3,0,9,3,9,11,11,9,10,-1],[0,1,10,0,10,8,8,10,11,-1],[3,1,10,11,3,10,-1],[1,2,11,1,11,9,9,11,8,-1],[3,0,9,3,9,11,1,2,9,2,11,9,-1],[0,2,11,8,0,11,-1],[3,2,11,-1],[2,3,8,2,8,10,10,8,9,-1],[9,10,2,0,9,2,-1],[2,3,8,2,8,10,0,1,8,1,10,8,-1],[1,10,2,-1],[1,3,8,9,1,8,-1],[0,9,1,-1],[0,3,8,-1],[-1]];
 const EV=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
 const CV=[[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]];
 
-function generateSTL(pcb){
-  return new Promise(resolve=>{
-    // Use genSegments3D with current deformation applied
-    const data=genSegments3D(true);
-    const{segs3d,sR}=data;
-    const{strutD}=P;
-    pcb(.08);
-
-    const vR=(+$('vox-slider').value)/1000;
-    let bbX0=1e9,bbY0=1e9,bbZ0=1e9,bbX1=-1e9,bbY1=-1e9,bbZ1=-1e9;
-    for(const s of segs3d){for(const p of[s.p0,s.p1]){
-      if(p[0]-s.r<bbX0)bbX0=p[0]-s.r;if(p[0]+s.r>bbX1)bbX1=p[0]+s.r;
-      if(p[1]-s.r<bbY0)bbY0=p[1]-s.r;if(p[1]+s.r>bbY1)bbY1=p[1]+s.r;
-      if(p[2]-s.r<bbZ0)bbZ0=p[2]-s.r;if(p[2]+s.r>bbZ1)bbZ1=p[2]+s.r;
-    }}
-    const pad=Math.max(sR,strutD)*2+vR*4;
-    const xn=bbX0-pad,xx=bbX1+pad,yn=bbY0-pad,yx=bbY1+pad,zn=bbZ0-pad,zx=bbZ1+pad;
-    let nx=Math.ceil((xx-xn)/vR)+1,ny=Math.ceil((yx-yn)/vR)+1,nz=Math.ceil((zx-zn)/vR)+1;
-    const mx=200*200*500;if(nx*ny*nz>mx){const s=Math.cbrt(mx/(nx*ny*nz));nx=Math.ceil(nx*s);ny=Math.ceil(ny*s);nz=Math.ceil(nz*s)}
-    const sdf=new Float32Array(nx*ny*nz).fill(1e6);
-    const dX=(xx-xn)/(nx-1),dY=(yx-yn)/(ny-1),dZ=(zx-zn)/(nz-1);
-    pcb(.1);
-
-    let si=0;const tot=segs3d.length;
-    function chunk(){
-      const cs=Math.max(1,Math.floor(tot/20)),end=Math.min(si+cs,tot);
-      for(;si<end;si++){
-        const{p0,p1,r}=segs3d[si];
-        const bx0=Math.max(0,Math.floor((Math.min(p0[0],p1[0])-r-dX*2-xn)/dX)-1);
-        const bx1=Math.min(nx,Math.ceil((Math.max(p0[0],p1[0])+r+dX*2-xn)/dX)+2);
-        const by0=Math.max(0,Math.floor((Math.min(p0[1],p1[1])-r-dY*2-yn)/dY)-1);
-        const by1=Math.min(ny,Math.ceil((Math.max(p0[1],p1[1])+r+dY*2-yn)/dY)+2);
-        const bz0=Math.max(0,Math.floor((Math.min(p0[2],p1[2])-r-dZ*2-zn)/dZ)-1);
-        const bz1=Math.min(nz,Math.ceil((Math.max(p0[2],p1[2])+r+dZ*2-zn)/dZ)+2);
-        const dx3=p1[0]-p0[0],dy3=p1[1]-p0[1],dz3=p1[2]-p0[2],lsq=dx3*dx3+dy3*dy3+dz3*dz3;
-        for(let i=bx0;i<bx1;i++){const px=xn+i*dX;for(let j=by0;j<by1;j++){const py=yn+j*dY;for(let k=bz0;k<bz1;k++){
-          const pz=zn+k*dZ,apx=px-p0[0],apy=py-p0[1],apz=pz-p0[2];
-          let t=lsq<1e-20?0:(apx*dx3+apy*dy3+apz*dz3)/lsq;t=t<0?0:t>1?1:t;
-          const cx=p0[0]+t*dx3-px,cy=p0[1]+t*dy3-py,cz=p0[2]+t*dz3-pz;
-          const d=Math.sqrt(cx*cx+cy*cy+cz*cz)-r;
-          const idx=i*ny*nz+j*nz+k;if(d<sdf[idx])sdf[idx]=d;
-        }}}
-      }
-      pcb(.1+.6*(si/tot));
-      if(si<tot)setTimeout(chunk,0);else runMC();
-    }
-    function runMC(){
-      pcb(.75);const verts=[],faces=[],cache={};
-      function interp(i,j,k,ei){
-        const v0=CV[EV[ei][0]],v1=CV[EV[ei][1]];
-        const i0=i+v0[0],j0=j+v0[1],k0=k+v0[2],i1=i+v1[0],j1=j+v1[1],k1=k+v1[2];
-        const ka=i0<i1||(i0===i1&&(j0<j1||(j0===j1&&k0<k1)))?i0*1e8+j0*1e4+k0+.5*(i1*1e8+j1*1e4+k1):i1*1e8+j1*1e4+k1+.5*(i0*1e8+j0*1e4+k0);
-        if(cache[ka]!==undefined)return cache[ka];
-        const va=sdf[i0*ny*nz+j0*nz+k0],vb=sdf[i1*ny*nz+j1*nz+k1];
-        let t=Math.abs(vb-va)<1e-12?.5:va/(va-vb);t=t<0?0:t>1?1:t;
-        const vi=verts.length/3;
-        verts.push(xn+(i0+t*(i1-i0))*dX,yn+(j0+t*(j1-j0))*dY,zn+(k0+t*(k1-k0))*dZ);
-        cache[ka]=vi;return vi;
-      }
-      for(let i=0;i<nx-1;i++){
-        if(i%(Math.floor(nx/10)||1)===0)pcb(.75+.2*(i/(nx-1)));
-        for(let j=0;j<ny-1;j++)for(let k=0;k<nz-1;k++){
-          let ci=0;for(let b=0;b<8;b++){const v=CV[b];if(sdf[(i+v[0])*ny*nz+(j+v[1])*nz+(k+v[2])]<0)ci|=(1<<b)}
-          if(ci===0||ci===255)continue;
-          const tl=TRI_TABLE[ci];for(let ti=0;ti<tl.length;ti+=3){if(tl[ti]===-1)break;
-            const a=interp(i,j,k,tl[ti]),b=interp(i,j,k,tl[ti+1]),c=interp(i,j,k,tl[ti+2]);
-            if(a!==b&&b!==c&&a!==c)faces.push(a,b,c);
-          }
-        }
-      }
-      pcb(.98);
-      const nTri=faces.length/3,buf=new ArrayBuffer(80+4+nTri*50),dv=new DataView(buf);
-      const enc=new TextEncoder();new Uint8Array(buf,0,38).set(enc.encode('Auxetic Stent STL - Browser Generated'));
-      dv.setUint32(80,nTri,true);let off=84;
-      for(let f=0;f<nTri;f++){
-        const ia=faces[f*3],ib=faces[f*3+1],ic=faces[f*3+2];
-        const ax=verts[ia*3],ay=verts[ia*3+1],az=verts[ia*3+2],bx=verts[ib*3],by=verts[ib*3+1],bz=verts[ib*3+2],cx=verts[ic*3],cy=verts[ic*3+1],cz=verts[ic*3+2];
-        const e1x=bx-ax,e1y=by-ay,e1z=bz-az,e2x=cx-ax,e2y=cy-ay,e2z=cz-az;
-        let nnx=e1y*e2z-e1z*e2y,nny=e1z*e2x-e1x*e2z,nnz=e1x*e2y-e1y*e2x;
-        const nl=Math.sqrt(nnx*nnx+nny*nny+nnz*nnz)||1;nnx/=nl;nny/=nl;nnz/=nl;
-        dv.setFloat32(off,nnx,true);dv.setFloat32(off+4,nny,true);dv.setFloat32(off+8,nnz,true);
-        dv.setFloat32(off+12,ax,true);dv.setFloat32(off+16,ay,true);dv.setFloat32(off+20,az,true);
-        dv.setFloat32(off+24,bx,true);dv.setFloat32(off+28,by,true);dv.setFloat32(off+32,bz,true);
-        dv.setFloat32(off+36,cx,true);dv.setFloat32(off+40,cy,true);dv.setFloat32(off+44,cz,true);
-        dv.setUint16(off+48,0,true);off+=50;
-      }
-      pcb(1);resolve({buf,nTri,nV:verts.length/3});
-    }
-    setTimeout(chunk,0);
-  });
+function genSegments3D(){
+  const{OD1,OD2,length,strutW,strutD}=P;const sR=strutW/2;
+  const{uniq,tc,ta}=gen2DLattice(P);const hl=length/2;
+  const t=deformT;let bend=0,flex=0,axS=1,crimpF=0,expandF=0;
+  if(mode==='crimp'){crimpF=t;axS=1-t*.25}else if(mode==='expand'){expandF=t;axS=1+t*.15}
+  else if(mode==='bend')bend=t;else if(mode==='flex')flex=t;
+  function radiusAt(y){const frac=(y+ta/2)/ta;let R=(OD1/2)+((OD2-OD1)/2)*Math.max(0,Math.min(1,frac));if(crimpF>0)R*=(1-crimpF*.5);if(expandF>0)R*=(1+expandF*.33);return R}
+  function m2c(x,y){const a=(x/tc)*Math.PI*2;const Rm=radiusAt(y)-strutD/2;return{x:Rm*Math.cos(a),y:y*axS,z:Rm*Math.sin(a)}}
+  function applyBF(pt){
+    if(bend>0){const kappa=bend*.08,s=pt.y;if(kappa*Math.abs(s)>1e-6){pt.y=Math.sin(kappa*s)/kappa;pt.x+=(1-Math.cos(kappa*s))/kappa}}
+    if(flex>0){const nY=pt.y/(hl*axS||1);pt.x+=Math.sin(nY*Math.PI*2)*flex*.8;pt.z+=Math.cos(nY*Math.PI*2.5+.5)*flex*.3}return pt}
+  const segs3d=[];
+  for(const seg of uniq){for(let i=0;i<4;i++){const f0=i/4,f1=(i+1)/4;
+    const px0=seg.s[0]*(1-f0)+seg.e[0]*f0,py0=seg.s[1]*(1-f0)+seg.e[1]*f0;
+    const px1=seg.s[0]*(1-f1)+seg.e[0]*f1,py1=seg.s[1]*(1-f1)+seg.e[1]*f1;
+    const p0=applyBF(m2c(px0,py0)),p1=applyBF(m2c(px1,py1));
+    segs3d.push({p0:[p0.x,p0.y,p0.z],p1:[p1.x,p1.y,p1.z],r:sR});
+  }}
+  return{segs3d,sR};
 }
+
+function generateSTL(pcb){return new Promise(resolve=>{
+  const{segs3d,sR}=genSegments3D();const{strutD}=P;pcb(.08);
+  const vR=(+$('vox-slider').value)/1000;
+  let bx0=1e9,by0=1e9,bz0=1e9,bx1=-1e9,by1=-1e9,bz1=-1e9;
+  for(const s of segs3d){for(const p of[s.p0,s.p1]){const r=s.r;if(p[0]-r<bx0)bx0=p[0]-r;if(p[0]+r>bx1)bx1=p[0]+r;if(p[1]-r<by0)by0=p[1]-r;if(p[1]+r>by1)by1=p[1]+r;if(p[2]-r<bz0)bz0=p[2]-r;if(p[2]+r>bz1)bz1=p[2]+r}}
+  const pad=Math.max(sR,strutD)*2+vR*4;
+  const xn=bx0-pad,xx=bx1+pad,yn=by0-pad,yx=by1+pad,zn=bz0-pad,zx=bz1+pad;
+  let nx=Math.ceil((xx-xn)/vR)+1,ny=Math.ceil((yx-yn)/vR)+1,nz=Math.ceil((zx-zn)/vR)+1;
+  const mx=200*200*500;if(nx*ny*nz>mx){const s=Math.cbrt(mx/(nx*ny*nz));nx=Math.ceil(nx*s);ny=Math.ceil(ny*s);nz=Math.ceil(nz*s)}
+  const sdf=new Float32Array(nx*ny*nz).fill(1e6);const dX=(xx-xn)/(nx-1),dY=(yx-yn)/(ny-1),dZ=(zx-zn)/(nz-1);pcb(.1);
+  let si=0;const tot=segs3d.length;
+  function chunk(){const cs=Math.max(1,Math.floor(tot/20)),end=Math.min(si+cs,tot);
+    for(;si<end;si++){const{p0,p1,r}=segs3d[si];
+      const ix0=Math.max(0,Math.floor((Math.min(p0[0],p1[0])-r-dX*2-xn)/dX)-1),ix1=Math.min(nx,Math.ceil((Math.max(p0[0],p1[0])+r+dX*2-xn)/dX)+2);
+      const iy0=Math.max(0,Math.floor((Math.min(p0[1],p1[1])-r-dY*2-yn)/dY)-1),iy1=Math.min(ny,Math.ceil((Math.max(p0[1],p1[1])+r+dY*2-yn)/dY)+2);
+      const iz0=Math.max(0,Math.floor((Math.min(p0[2],p1[2])-r-dZ*2-zn)/dZ)-1),iz1=Math.min(nz,Math.ceil((Math.max(p0[2],p1[2])+r+dZ*2-zn)/dZ)+2);
+      const dx3=p1[0]-p0[0],dy3=p1[1]-p0[1],dz3=p1[2]-p0[2],lsq=dx3*dx3+dy3*dy3+dz3*dz3;
+      for(let i=ix0;i<ix1;i++){const px=xn+i*dX;for(let j=iy0;j<iy1;j++){const py=yn+j*dY;for(let k=iz0;k<iz1;k++){const pz=zn+k*dZ,ax=px-p0[0],ay=py-p0[1],az=pz-p0[2];
+        let t=lsq<1e-20?0:(ax*dx3+ay*dy3+az*dz3)/lsq;t=t<0?0:t>1?1:t;
+        const cx=p0[0]+t*dx3-px,cy=p0[1]+t*dy3-py,cz=p0[2]+t*dz3-pz;
+        const d=Math.sqrt(cx*cx+cy*cy+cz*cz)-r;const idx=i*ny*nz+j*nz+k;if(d<sdf[idx])sdf[idx]=d;
+      }}}}pcb(.1+.6*(si/tot));if(si<tot)setTimeout(chunk,0);else runMC()}
+  function runMC(){pcb(.75);const verts=[],faces=[],cache={};
+    function interp(i,j,k,ei){const v0=CV[EV[ei][0]],v1=CV[EV[ei][1]];const i0=i+v0[0],j0=j+v0[1],k0=k+v0[2],i1=i+v1[0],j1=j+v1[1],k1=k+v1[2];
+      const ka=i0<i1||(i0===i1&&(j0<j1||(j0===j1&&k0<k1)))?i0*1e8+j0*1e4+k0+.5*(i1*1e8+j1*1e4+k1):i1*1e8+j1*1e4+k1+.5*(i0*1e8+j0*1e4+k0);
+      if(cache[ka]!==undefined)return cache[ka];const va=sdf[i0*ny*nz+j0*nz+k0],vb=sdf[i1*ny*nz+j1*nz+k1];
+      let t=Math.abs(vb-va)<1e-12?.5:va/(va-vb);t=t<0?0:t>1?1:t;const vi=verts.length/3;
+      verts.push(xn+(i0+t*(i1-i0))*dX,yn+(j0+t*(j1-j0))*dY,zn+(k0+t*(k1-k0))*dZ);cache[ka]=vi;return vi}
+    for(let i=0;i<nx-1;i++){if(i%(Math.floor(nx/10)||1)===0)pcb(.75+.2*(i/(nx-1)));
+      for(let j=0;j<ny-1;j++)for(let k=0;k<nz-1;k++){let ci=0;for(let b=0;b<8;b++){const v=CV[b];if(sdf[(i+v[0])*ny*nz+(j+v[1])*nz+(k+v[2])]<0)ci|=(1<<b)}
+        if(ci===0||ci===255)continue;const tl=TRI_TABLE[ci];for(let ti=0;ti<tl.length;ti+=3){if(tl[ti]===-1)break;
+          const a=interp(i,j,k,tl[ti]),b=interp(i,j,k,tl[ti+1]),c=interp(i,j,k,tl[ti+2]);if(a!==b&&b!==c&&a!==c)faces.push(a,b,c)}}}
+    pcb(.98);const nTri=faces.length/3,buf=new ArrayBuffer(80+4+nTri*50),dv=new DataView(buf);
+    new Uint8Array(buf,0,38).set(new TextEncoder().encode('Auxetic Stent STL - Browser Generated'));dv.setUint32(80,nTri,true);let off=84;
+    for(let f=0;f<nTri;f++){const ia=faces[f*3],ib=faces[f*3+1],ic=faces[f*3+2];
+      const ax=verts[ia*3],ay=verts[ia*3+1],az=verts[ia*3+2],bxx=verts[ib*3],by=verts[ib*3+1],bz=verts[ib*3+2],cx=verts[ic*3],cy=verts[ic*3+1],cz=verts[ic*3+2];
+      const e1x=bxx-ax,e1y=by-ay,e1z=bz-az,e2x=cx-ax,e2y=cy-ay,e2z=cz-az;
+      let nnx=e1y*e2z-e1z*e2y,nny=e1z*e2x-e1x*e2z,nnz=e1x*e2y-e1y*e2x;const nl=Math.sqrt(nnx*nnx+nny*nny+nnz*nnz)||1;nnx/=nl;nny/=nl;nnz/=nl;
+      dv.setFloat32(off,nnx,true);dv.setFloat32(off+4,nny,true);dv.setFloat32(off+8,nnz,true);
+      dv.setFloat32(off+12,ax,true);dv.setFloat32(off+16,ay,true);dv.setFloat32(off+20,az,true);
+      dv.setFloat32(off+24,bxx,true);dv.setFloat32(off+28,by,true);dv.setFloat32(off+32,bz,true);
+      dv.setFloat32(off+36,cx,true);dv.setFloat32(off+40,cy,true);dv.setFloat32(off+44,cz,true);
+      dv.setUint16(off+48,0,true);off+=50}
+    pcb(1);resolve({buf,nTri})}
+  setTimeout(chunk,0)})}
 
 $('dl-btn').addEventListener('click',async()=>{
   const btn=$('dl-btn'),prog=$('dl-progress'),bar=$('dl-bar');
-  btn.disabled=true;btn.textContent='Generating mesh\u2026';prog.style.display='block';bar.style.width='0%';
-  try{
-    const{buf,nTri}=await generateSTL(p=>{bar.style.width=Math.round(p*100)+'%'});
+  btn.disabled=true;btn.textContent='Generating\u2026';prog.style.display='block';bar.style.width='0%';
+  try{const{buf,nTri}=await generateSTL(p=>{bar.style.width=Math.round(p*100)+'%'});
     const blob=new Blob([buf],{type:'application/octet-stream'}),url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;
-    const taper=P.OD1!==P.OD2?'_taper':'';
-    const def=deformT>0?'_'+mode+Math.round(deformT*100):'';
+    const a=document.createElement('a');a.href=url;const taper=P.OD1!==P.OD2?'_taper':'';const def=deformT>0?'_'+mode+Math.round(deformT*100):'';
     a.download='stent_'+P.OD1.toFixed(1)+'x'+P.length.toFixed(0)+'mm'+taper+def+'.stl';
     document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
-    btn.textContent='\u2713 '+(nTri/1000).toFixed(0)+'k triangles';
-    setTimeout(()=>{btn.textContent='\u2B07 Generate & download STL';btn.disabled=false;prog.style.display='none'},4000);
-  }catch(e){btn.textContent='Error \u2014 try coarser resolution';btn.disabled=false;console.error(e);setTimeout(()=>{btn.textContent='\u2B07 Generate & download STL';prog.style.display='none'},3000)}
+    btn.textContent='\u2713 '+(nTri/1000).toFixed(0)+'k tris';
+    setTimeout(()=>{btn.textContent='\u2B07 Download STL';btn.disabled=false;prog.style.display='none'},3500);
+  }catch(e){btn.textContent='Error';btn.disabled=false;console.error(e);setTimeout(()=>{btn.textContent='\u2B07 Download STL';prog.style.display='none'},3000)}
 });
 
-function resize(){const vp=canvas.parentElement,w=vp.clientWidth,h=vp.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix()}
+// ─── Resize + Animate ───
+function resize(){
+  [scA,scB].forEach(sc=>{const vp=sc.canvas.parentElement;if(!vp.offsetWidth)return;const w=vp.clientWidth,h=vp.clientHeight;sc.renderer.setSize(w,h);sc.camera.aspect=w/h;sc.camera.updateProjectionMatrix()});
+}
 window.addEventListener('resize',resize);
 let aP=0;
 function animate(){
   requestAnimationFrame(animate);
   if(playing){aP+=.008*animSpeed;deformT=Math.sin(aP)*.5+.5;$('deform-slider').value=Math.round(deformT*100);$('deform-val').textContent=Math.round(deformT*100)+'%';rebuildMeshes();updateStats()}
-  if(!isDrag)orbitTheta+=playing?.003:.002;
-  camera.position.set(orbitDist*Math.sin(orbitPhi)*Math.cos(orbitTheta),orbitDist*Math.cos(orbitPhi),orbitDist*Math.sin(orbitPhi)*Math.sin(orbitTheta));
-  camera.lookAt(0,0,0);renderer.render(scene,camera);
+  if(!isDrag)oT+=playing?.003:.002;
+  const cx=oD*Math.sin(oP)*Math.cos(oT),cy=oD*Math.cos(oP),cz=oD*Math.sin(oP)*Math.sin(oT);
+  scA.camera.position.set(cx,cy,cz);scA.camera.lookAt(0,0,0);scA.renderer.render(scA.scene,scA.camera);
+  if(compareMode){scB.camera.position.set(cx,cy,cz);scB.camera.lookAt(0,0,0);scB.renderer.render(scB.scene,scB.camera)}
 }
 resize();buildStent();updateStats();animate();
 })();
